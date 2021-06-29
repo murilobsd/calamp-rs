@@ -1,0 +1,97 @@
+/// Tipos de identificação móvel.
+/// 
+///
+#[derive(Debug, PartialEq, Eq)]
+pub enum MobileIDType {
+    Off,
+    Esn,
+    Imei,
+    Eid,
+    Imsi,
+    Gsm,
+    Gprs,
+    UserDefined,
+    PhoneNumber,
+    LmuIp,
+}
+
+impl MobileIDType {
+    pub fn id(&self) -> i32 { 
+        match *self {
+            Self::Esn => 1,
+            Self::Imei | Self::Eid => 2,
+            Self::Imsi | Self::Gsm| Self::Gprs => 3,
+            Self::UserDefined => 4,
+            Self::PhoneNumber => 5,
+            Self::LmuIp => 6,
+            _ => 0,
+        }
+    }
+
+    pub fn to_bytes(&self) -> [u8; 4] {
+        let id = self.id();
+        id.to_be_bytes()
+    }
+
+    pub fn gsm(&self) -> String {
+        let id = self.id();
+        id.to_string()
+    }
+}
+
+impl Default for MobileIDType {
+    fn default() -> Self {
+        MobileIDType::Off
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::MobileIDType;
+
+    #[test]
+    fn mobile_id_type_default() {
+        assert_eq!(MobileIDType::default(), MobileIDType::Off)
+    }
+
+    #[test]
+    fn mobile_id_type_id() {
+        let esn = MobileIDType::Esn;
+        assert_eq!(esn.id(), 1)
+    }
+
+    #[test]
+    fn mobile_id_type_to_bytes() {
+        let esn = MobileIDType::Esn;
+        assert_eq!(esn.to_bytes(), [0x00, 0x00, 0x00, 0x01]);
+    }
+
+    #[test]
+    fn mobile_id_type_gsm() {
+        let esn = MobileIDType::Esn;
+        assert_eq!(esn.gsm(), String::from("1"));
+    }
+
+    #[test]
+    fn test_parse_options() {
+        let _data: [u8; 117] = [
+            0x83, 0x05, 0x46, 0x34, 0x66, 0x32, 0x35, 0x01,
+            0x01, 0x01, 0x02, 0x3a, 0x86, 0x5f, 0xf1, 0x3a,
+            0x54, 0x5f, 0xf1, 0x3a, 0x57, 0xf1, 0xe2, 0x85,
+            0x78, 0xe4, 0x22, 0xd6, 0x40, 0x00, 0x01, 0x36,
+            0xf8, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x06,
+            0x20, 0x00, 0x00, 0xff, 0x8d, 0x02, 0x1e, 0x1e,
+            0x00, 0x7b, 0x21, 0x10, 0x00, 0x00, 0x00, 0x31,
+            0xe0, 0x00, 0x00, 0x10, 0x1a, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x22, 0x2a, 0x32, 0x00, 0x00, 0x03,
+            0xf1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x01, 0xc8, 0x2d, 0x3f, 0x01, 0xc8, 0x2d,
+            0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x40, 0x01, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00
+        ];
+
+        assert_eq!(2 + 2, 4);
+    }
+}
