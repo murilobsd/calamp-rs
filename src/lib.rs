@@ -98,7 +98,7 @@ pub enum AppMsgType {
 pub enum SourceBus {
     J1939,
     J1708,
-    OBDII,
+    Obdii,
 }
 
 pub enum ReportType {

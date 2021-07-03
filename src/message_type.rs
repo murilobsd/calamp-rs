@@ -1,0 +1,17 @@
+pub enum MessageType {
+    Null,
+    AckNak,
+    EventReport,
+    IDReport,
+    UserData,
+    ApplicationData,
+    ConfigurationParameter,
+    UnitRequest,
+    LocateReport,
+    UserDataWithAccumulators,
+    MiniEventReport,
+    MiniUserData,
+    MiniApplication,
+    DeviceVersion,
+    ApplicationMessageWithAccumulators,
+}
