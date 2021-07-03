@@ -4,7 +4,7 @@ version = "0.0.1"
 authors = ["msi <mbsd@m0x.ru>"]
 edition = "2018"
 include = [
-  "LICENSE-*",
+  "LICENSE*",
   ".gitignore",
   "Cargo.toml",
   "benches/*.rs",
