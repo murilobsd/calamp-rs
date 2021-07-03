@@ -1,12 +1,24 @@
 [package]
 name = "calamp-rs"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["msi <mbsd@m0x.ru>"]
 edition = "2018"
 include = [
-    "**/*.rs",
-    "Cargo.toml",
+  "LICENSE-*",
+  ".gitignore",
+  "Cargo.toml",
+  "benches/*.rs",
+  "src/*.rs",
+  "tests/*.rs",
 ]
+license = "MIT"
+keywords = ["protocol","parser","nom"]
+homepage = "https://github.com/murilobsd/calamp-rs"
+repository = "https://github.com/murilobsd/calamp-rs.git"
+documentation = "https://docs.rs/calamp-rs"
+categories = ["network-programming", "parser-implementations"]
+readme = "README.md"
+description = "Parser for the Calamp LMDirect message protocol"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
