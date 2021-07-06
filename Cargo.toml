@@ -1,6 +1,6 @@
 [package]
 name = "calamp-rs"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["msi <mbsd@m0x.ru>"]
 edition = "2018"
 include = [

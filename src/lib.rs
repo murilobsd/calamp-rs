@@ -14,20 +14,59 @@
 
 //! Calamp LMDirect message parser.
 
-use nom::bits::{bits, streaming::take};
-use nom::error::Error;
+use nom::bits::{bits, streaming};
+use nom::bytes;
+use nom::error::{Error, ErrorKind};
+use nom::number::complete::be_u8;
 use nom::sequence::tuple;
 use nom::IResult;
 
 #[derive(Debug)]
+pub struct MobileID<'a>(&'a [u8]);
+
+impl<'a> MobileID<'a> {
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn parse(input: &'a [u8]) -> IResult<&[u8], Self> {
+        let (i, a): (&[u8], u8) = be_u8::<_, (_, ErrorKind)>(input).unwrap();
+        let (i, b): (&[u8], &[u8]) = bytes::streaming::take(a)(i)?;
+        Ok((i, Self(b)))
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+impl<'a> ToString for MobileID<'a> {
+    fn to_string(&self) -> String {
+        let mut id = String::from("");
+        for d in self.0.iter() {
+            id.push_str(&format!("{0:2x}", d))
+        }
+        id
+    }
+}
+
+#[derive(Debug)]
 pub struct OptionsStatus {
+    /// MobileID is set
     is_mobile_id: bool,
+    /// MobileIdType is set
     is_mobile_id_type: bool,
+    /// Authentication World is set
     is_authentication_world: bool,
+    /// Routing is set
     is_routing: bool,
+    /// Forwarding is set
     is_forwarding: bool,
+    /// Response redirections is set
     is_response_redirection: bool,
+    /// Options extension is set
     is_options_extension: bool,
+    /// Options headers exist
     is_always_set: bool,
 }
 
@@ -69,14 +108,14 @@ pub fn parse_options_status(input: &[u8]) -> IResult<&[u8], OptionsStatus> {
     #[allow(clippy::type_complexity)]
     let (i, b): (&[u8], (u8, u8, u8, u8, u8, u8, u8, u8)) =
         bits::<_, _, Error<(&[u8], usize)>, _, _>(tuple((
-            take(1u8),
-            take(1u8),
-            take(1u8),
-            take(1u8),
-            take(1u8),
-            take(1u8),
-            take(1u8),
-            take(1u8),
+            streaming::take(1u8),
+            streaming::take(1u8),
+            streaming::take(1u8),
+            streaming::take(1u8),
+            streaming::take(1u8),
+            streaming::take(1u8),
+            streaming::take(1u8),
+            streaming::take(1u8),
         )))(input)?;
     Ok((
         i,
@@ -96,7 +135,7 @@ pub fn parse_options_status(input: &[u8]) -> IResult<&[u8], OptionsStatus> {
 #[cfg(test)]
 mod tests {
     use super::parse_options_status;
-    use crate::OptionsStatus;
+    use crate::{MobileID, OptionsStatus};
 
     #[test]
     fn test_parse_options_status() {
@@ -114,7 +153,7 @@ mod tests {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ];
 
-        let (_, b): (&[u8], OptionsStatus) =
+        let (i, b): (&[u8], OptionsStatus) =
             parse_options_status(&data).unwrap();
 
         assert_eq!(b.is_mobile_id(), true);
@@ -125,5 +164,11 @@ mod tests {
         assert_eq!(b.is_response_redirection(), false);
         assert_eq!(b.is_options_extension(), false);
         assert_eq!(b.is_always_set(), true);
+
+        if b.is_mobile_id() {
+            let (_, mobileid): (&[u8], MobileID) = MobileID::parse(i).unwrap();
+            assert_eq!(mobileid.len(), 5);
+            assert_eq!(mobileid.to_string(), String::from("4634663235"));
+        }
     }
 }
