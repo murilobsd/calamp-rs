@@ -7,8 +7,6 @@
 //
 // THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
 // WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-// ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
 // WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
@@ -16,241 +14,92 @@
 
 //! Calamp LMDirect message parser.
 
-const OPTIONS_BYTE: u8 = 0x83;
-const EVENT_REPORT_MESSAGE: u8 = 2;
-const ID_REPORT_MESSAGE: u8 = 3;
-const MINI_EVENT_REPORT_MESSAGE: u8 = 10;
-const DEVICE_SLEEP_REPORT: u8 = 33;
-
-use std::convert::TryInto;
-
-fn read_be_i16(input: &mut &[u8]) -> i16 {
-    let (int_bytes, rest) = input.split_at(std::mem::size_of::<i16>());
-    *input = rest;
-    i16::from_be_bytes(int_bytes.try_into().unwrap())
-}
-
-pub enum MessageType {
-    Null,
-    AckNak,
-    EventReport,
-    IDReport,
-    UserData,
-    ApplicationData,
-    ConfigurationParameter,
-    UnitRequest,
-    LocateReport,
-    UserDataWithAccumulators,
-    MiniEventReport,
-    MiniUserData,
-    MiniApplication,
-    DeviceVersion,
-    ApplicationMessageWithAccumulators,
-}
-
-pub struct AcknowledgeMessage {
-    pub tp: u8,
-    pub ack: u8,
-    pub unused: u8,
-    pub app_version: [u8],
-}
-
-pub enum AppMsgType {
-    IPRequest = 10,
-    IPReport = 11,
-    TimeSync = 50,
-    Services = 80,
-    SVRMessaging = 81,
-    DownloadIDReport = 100,
-    DownloadAuthorization = 101,
-    DownloadRequest = 102,
-    DownloadUpdate = 103,
-    DownloadComplete = 104,
-    DownloadHTTPLMUFW = 105,
-    DownloadHTTPFile = 106,
-    OTADownload = 107,
-    ATCommand = 110,
-    VersionReport = 111,
-    GPSStatusReport = 112,
-    MessageStatisticsReport = 113,
-    StateReport = 115,
-    GeoZoneActionMessage = 116,
-    GeoZoneUpdateMessage = 117,
-    ProbeIDReport = 118,
-    CaptureReport = 120,
-    MotionLogReport = 122,
-    CompressedMotionLogReport = 123,
-    VBusDataReport = 130,
-    VehicleIDReport = 131,
-    VBusDTCReport = 132,
-    VBusVINDecodeLookup = 133,
-    SquarellCommandMessage = 134,
-    SquarellStatusMessage = 135,
-    VBusRegisterDeviceMessage = 136,
-    VBusFreezeFrame = 137,
-    VBusDiagnosticsReport = 139,
-    VBusRemoteOBD = 140,
-    VBusGroupDataReport = 142,
-    VBusManagementOutbound = 145,
-    VBusManagementInbound = 148,
-}
-
-pub enum SourceBus {
-    J1939,
-    J1708,
-    Obdii,
-}
-
-pub enum ReportType {
-    All,
-    Unreported,
-}
-
-pub struct BaseReportContents {
-    pub update_time: [u8; 4],
-    pub timeoff_fix: [u8; 4],
-}
-
-pub enum ServiceType {
-    /// Unacknowledged Request
-    Unacknowledged,
-    /// Acknowledged Request
-    Acknowledged,
-    /// Response to an Acknowledged Request
-    ResponseToAnAcknowledged,
-}
-
-pub enum Action {
-    ReadRequest,
-    WriteRequest,
-    ReadReport,
-    WriteReport,
-    UpdateBegin,
-    UpdateEnd,
-}
+use nom::bits::{bits, streaming::take};
+use nom::error::Error;
+use nom::sequence::tuple;
+use nom::IResult;
 
 #[derive(Debug)]
-pub struct MessageHeader {
-    pub service_type: u8,
-    pub message_type: u8,
-    pub sequence_number: i16,
-    next_part: usize,
+pub struct OptionsStatus {
+    is_mobile_id: bool,
+    is_mobile_id_type: bool,
+    is_authentication_world: bool,
+    is_routing: bool,
+    is_forwarding: bool,
+    is_response_redirection: bool,
+    is_options_extension: bool,
+    is_always_set: bool,
 }
 
-impl MessageHeader {
-    pub fn new(
-        service_type: u8,
-        message_type: u8,
-        sequence_number: i16,
-        next_part: usize,
-    ) -> Self {
-        Self {
-            service_type,
-            message_type,
-            sequence_number,
-            next_part,
-        }
-    }
-    pub fn parse(data: &[u8], pos: usize) -> Self {
-        let mut i = pos;
-        let service_type = data[i];
-        i += 40;
-        let message_type = data[i];
-        i += 1;
-        let mut zumba = &data[pos + 1..pos + 4];
-        let sequence_number = read_be_i16(&mut zumba);
-        i += 2;
-        Self::new(service_type, message_type, sequence_number, i)
+impl OptionsStatus {
+    pub fn is_mobile_id(&self) -> bool {
+        self.is_mobile_id
     }
 
-    pub fn is_event_report(&self) -> bool {
-        self.message_type == EVENT_REPORT_MESSAGE
+    pub fn is_mobile_id_type(&self) -> bool {
+        self.is_mobile_id_type
     }
 
-    pub fn is_id_report(&self) -> bool {
-        self.message_type == ID_REPORT_MESSAGE
+    pub fn is_authentication_world(&self) -> bool {
+        self.is_authentication_world
     }
 
-    pub fn is_mini_event_report(&self) -> bool {
-        self.message_type == MINI_EVENT_REPORT_MESSAGE
+    pub fn is_routing(&self) -> bool {
+        self.is_routing
     }
 
-    pub fn is_event_sleep_device(&self) -> bool {
-        self.message_type == DEVICE_SLEEP_REPORT
+    pub fn is_forwarding(&self) -> bool {
+        self.is_forwarding
     }
 
-    pub fn next_part(&self) -> usize {
-        self.next_part
+    pub fn is_response_redirection(&self) -> bool {
+        self.is_response_redirection
+    }
+
+    pub fn is_options_extension(&self) -> bool {
+        self.is_options_extension
+    }
+
+    pub fn is_always_set(&self) -> bool {
+        self.is_always_set
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct OptionsHeader {
-    pub mobile_id: String,
-    pub mobile_type: u8,
-    next_part: usize,
-}
-
-impl OptionsHeader {
-    pub fn new(mobile_id: &str, mobile_type: u8, next_part: usize) -> Self {
-        Self {
-            mobile_id: mobile_id.to_string(),
-            mobile_type,
-            next_part,
-        }
-    }
-
-    fn parse_options(data: &[u8]) -> Option<OptionsHeader> {
-        let mut i: usize = 0;
-        if data[i] == OPTIONS_BYTE {
-            i += 1;
-            let mobile_id_field_length: u8 = data[i];
-            i += 1;
-            let start = i;
-            let mut mobile_id = String::from("");
-            while i < start + mobile_id_field_length as usize {
-                mobile_id.push_str(&format!("{0:2x}", data[i]));
-                i += 1;
-            }
-            i += 1;
-            let _mobile_type_length = data[i];
-            i += 1;
-            let mobile_type = data[i];
-            i += 1;
-            Some(OptionsHeader::new(&mobile_id, mobile_type, i))
-        } else {
-            None
-        }
-    }
-
-    pub fn next_part(&self) -> usize {
-        self.next_part
-    }
-}
-
-pub struct LMDirect {
-    pub option_header: Option<OptionsHeader>,
-    pub message_header: MessageHeader,
-}
-
-pub fn parse(data: &[u8]) -> LMDirect {
-    let option: OptionsHeader = match OptionsHeader::parse_options(data) {
-        Some(option) => option,
-        None => panic!("nao possui option"),
-    };
-
-    LMDirect {
-        option_header: Some(option.clone()),
-        message_header: MessageHeader::parse(data, option.next_part()),
-    }
+pub fn parse_options_status(input: &[u8]) -> IResult<&[u8], OptionsStatus> {
+    #[allow(clippy::type_complexity)]
+    let (i, b): (&[u8], (u8, u8, u8, u8, u8, u8, u8, u8)) =
+        bits::<_, _, Error<(&[u8], usize)>, _, _>(tuple((
+            take(1u8),
+            take(1u8),
+            take(1u8),
+            take(1u8),
+            take(1u8),
+            take(1u8),
+            take(1u8),
+            take(1u8),
+        )))(input)?;
+    Ok((
+        i,
+        OptionsStatus {
+            is_mobile_id: b.7 == 1,
+            is_mobile_id_type: b.6 == 1,
+            is_authentication_world: b.5 == 1,
+            is_routing: b.4 == 1,
+            is_forwarding: b.3 == 1,
+            is_response_redirection: b.2 == 1,
+            is_options_extension: b.1 == 1,
+            is_always_set: b.0 == 1,
+        },
+    ))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::parse;
+    use super::parse_options_status;
+    use crate::OptionsStatus;
 
     #[test]
-    fn test_parse() {
+    fn test_parse_options_status() {
         let data: [u8; 117] = [
             0x83, 0x05, 0x46, 0x34, 0x66, 0x32, 0x35, 0x01, 0x01, 0x01, 0x02,
             0x3a, 0x86, 0x5f, 0xf1, 0x3a, 0x54, 0x5f, 0xf1, 0x3a, 0x57, 0xf1,
@@ -265,15 +114,16 @@ mod tests {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ];
 
-        let lmdirect = parse(&data);
-        let option = lmdirect.option_header.unwrap();
+        let (_, b): (&[u8], OptionsStatus) =
+            parse_options_status(&data).unwrap();
 
-        assert_eq!(option.mobile_type, 1);
-        assert_eq!(option.mobile_id, String::from("4634663235"));
-        assert_eq!(option.next_part(), 10);
-
-        assert_eq!(lmdirect.message_header.is_event_sleep_device(), true);
-        assert_eq!(lmdirect.message_header.sequence_number, 14982);
-        assert_eq!(lmdirect.message_header.next_part(), 53);
+        assert_eq!(b.is_mobile_id(), true);
+        assert_eq!(b.is_mobile_id_type(), true);
+        assert_eq!(b.is_authentication_world(), false);
+        assert_eq!(b.is_routing(), false);
+        assert_eq!(b.is_forwarding(), false);
+        assert_eq!(b.is_response_redirection(), false);
+        assert_eq!(b.is_options_extension(), false);
+        assert_eq!(b.is_always_set(), true);
     }
 }

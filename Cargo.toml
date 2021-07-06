@@ -23,3 +23,4 @@ description = "Parser for the Calamp LMDirect message protocol"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+nom = "6.2.0"
