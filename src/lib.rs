@@ -17,7 +17,7 @@
 use nom::bits::{bits, streaming};
 use nom::bytes;
 use nom::error::{Error, ErrorKind};
-use nom::number::complete::{be_u16, be_u32, be_u8};
+use nom::number::complete::{be_i32, be_u16, be_u32, be_u8};
 use nom::sequence::tuple;
 use nom::IResult;
 
@@ -70,6 +70,12 @@ pub fn parse_update_time(input: &[u8]) -> IResult<&[u8], u32> {
     Ok((i, a))
 }
 
+pub fn parse_latitude(input: &[u8]) -> IResult<&[u8], f32> {
+    let (i, a): (&[u8], i32) = be_i32::<_, (_, ErrorKind)>(input).unwrap();
+    let b = (a as f32) * 10.000;
+    Ok((i, b))
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum MobileIDType {
     Off,
@@ -81,7 +87,7 @@ pub enum MobileIDType {
     Subscriber,
     /// User Defined Mobile ID
     Defined,
-    /// Phone Number of the mobile (if available)
+    /// Phone Number ofkk the mobile (if available)
     PhoneNumber,
     /// The current IP Address of the LMU
     IpAddress,
@@ -192,8 +198,9 @@ pub fn parse_options_status(input: &[u8]) -> IResult<&[u8], OptionsStatus> {
 mod tests {
     use super::{parse_mobile_id_type, parse_options_status};
     use crate::{
-        parse_message_type, parse_sequence_number, parse_service_type,
-        parse_update_time, MobileID, MobileIDType, OptionsStatus,
+        parse_latitude, parse_message_type, parse_sequence_number,
+        parse_service_type, parse_update_time, MobileID, MobileIDType,
+        OptionsStatus,
     };
 
     #[test]
@@ -247,6 +254,20 @@ mod tests {
                 assert_eq!(update_time, 1609644628);
                 let (i, time_of_fix) = parse_update_time(i).unwrap();
                 assert_eq!(time_of_fix, 1609644631);
+                let (i, latitude) = parse_latitude(i).unwrap();
+                assert_eq!(latitude, -2368129300.0);
+                let (i, longitude) = parse_latitude(i).unwrap();
+                assert_eq!(longitude, -4674790000.0);
+                let (i, altitude) = parse_update_time(i).unwrap();
+                assert_eq!(altitude, 79608);
+                let (_, speed) = parse_update_time(i).unwrap();
+                assert_eq!(speed, 11);
+                let (i, heading) = parse_sequence_number(i).unwrap();
+                assert_eq!(heading, 0);
+                let (i, satellites) = parse_message_type(i).unwrap();
+                assert_eq!(satellites, 6);
+                let (i, fix_status) = parse_message_type(i).unwrap();
+                assert_eq!(fix_status, 11);
             }
         }
     }
