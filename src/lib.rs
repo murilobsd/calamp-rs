@@ -50,6 +50,42 @@ impl<'a> ToString for MobileID<'a> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum MobileIDType {
+    Off,
+    /// Electronic Serial Number (ESN) of the LMU
+    Esn,
+    /// International Mobile Equipment Identifier (IMEI) or Electronic Identifier (EID) of the wireless modem
+    Equipment,
+    /// International Mobile Subscriber Identifier (IMSI) of the SIM card (GSM/GPRS devices only)
+    Subscriber,
+    /// User Defined Mobile ID
+    Defined,
+    /// Phone Number of the mobile (if available)
+    PhoneNumber,
+    /// The current IP Address of the LMU
+    IpAddress,
+    /// CDMA Mobile Equipment ID (MEID) or International Mobile Equipment Identifier (IMEI) of the wireless modem
+    Cdma,
+}
+
+// FIX: call multiple be_u8
+pub fn parse_mobile_id_type(input: &[u8]) -> IResult<&[u8], MobileIDType> {
+    be_u8::<_, (_, ErrorKind)>(input).unwrap();
+    let (i, b): (&[u8], u8) = be_u8::<_, (_, ErrorKind)>(input).unwrap();
+    match b {
+        0 => Ok((i, MobileIDType::Off)),
+        1 => Ok((i, MobileIDType::Esn)),
+        2 => Ok((i, MobileIDType::Equipment)),
+        3 => Ok((i, MobileIDType::Subscriber)),
+        4 => Ok((i, MobileIDType::Defined)),
+        5 => Ok((i, MobileIDType::PhoneNumber)),
+        6 => Ok((i, MobileIDType::IpAddress)),
+        7 => Ok((i, MobileIDType::Cdma)),
+        _ => panic!("not found"),
+    }
+}
+
 #[derive(Debug)]
 pub struct OptionsStatus {
     /// MobileID is set
@@ -134,8 +170,8 @@ pub fn parse_options_status(input: &[u8]) -> IResult<&[u8], OptionsStatus> {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_options_status;
-    use crate::{MobileID, OptionsStatus};
+    use super::{parse_mobile_id_type, parse_options_status};
+    use crate::{MobileID, MobileIDType, OptionsStatus};
 
     #[test]
     fn test_parse_options_status() {
@@ -164,11 +200,19 @@ mod tests {
         assert_eq!(b.is_response_redirection(), false);
         assert_eq!(b.is_options_extension(), false);
         assert_eq!(b.is_always_set(), true);
+        println!("{:?}", i);
 
         if b.is_mobile_id() {
-            let (_, mobileid): (&[u8], MobileID) = MobileID::parse(i).unwrap();
+            let (i, mobileid): (&[u8], MobileID) = MobileID::parse(i).unwrap();
             assert_eq!(mobileid.len(), 5);
             assert_eq!(mobileid.to_string(), String::from("4634663235"));
+            println!("{:?}", i);
+        }
+        println!("{:?}", i);
+        if b.is_mobile_id_type() {
+            let (_, mobileidtp): (&[u8], MobileIDType) =
+                parse_mobile_id_type(i).unwrap();
+            assert_eq!(mobileidtp, MobileIDType::PhoneNumber);
         }
     }
 }
