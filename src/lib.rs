@@ -286,6 +286,14 @@ mod tests {
                 // println!("inputs : {:#010b}", inputs);
                 let (i, unit_status) = parse_message_type(i).unwrap();
                 assert_eq!(unit_status, 0);
+                let (i, event_index) = parse_message_type(i).unwrap();
+                assert_eq!(event_index, 123);
+                let (i, event_code) = parse_message_type(i).unwrap();
+                assert_eq!(event_code, 33);
+                let (i, accums) = parse_message_type(i).unwrap();
+                assert_eq!(accums, 16);
+                let (i, append) = parse_message_type(i).unwrap();
+                assert_eq!(append, 0);
             }
         }
     }
