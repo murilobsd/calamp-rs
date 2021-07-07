@@ -123,7 +123,7 @@ pub struct EventReport<'a> {
     /// The time tag of the message in seconds.
     pub update_time: u32,
     /// The last known time of fix from the GPS satellites.
-    pub time_to_fix: u32,
+    pub time_of_fix: u32,
     /// The latitude reading of the GPS receiver, measured in degrees with a
     /// 1x10^-7 degree lsb, signed 2’s complement.
     pub latitude: f32,
@@ -238,6 +238,60 @@ pub struct EventReport<'a> {
     /// Format Type also defined in the Accums field. Refer to Appendix G,
     /// ‘Accumulator Reporting Formats’ for details.
     pub accum_list: &'a [u8],
+}
+
+impl<'a> EventReport<'a> {
+    /// Parse event report
+    fn parse(input: &[u8]) -> Self {
+        let (i, update_time) = parse_update_time(input).unwrap();
+        let (i, time_of_fix) = parse_update_time(i).unwrap();
+        let (i, latitude) = parse_latitude(i).unwrap();
+        let (i, longitude) = parse_latitude(i).unwrap();
+        let (i, altitude) = parse_update_time(i).unwrap();
+        let (i, speed) = parse_update_time(i).unwrap();
+        let (i, heading) = parse_sequence_number(i).unwrap();
+        let (i, satellites) = parse_message_type(i).unwrap();
+        let (i, fix_status) = parse_message_type(i).unwrap();
+        let (i, carrier) = parse_sequence_number(i).unwrap();
+        // FIX: is int16? signed singal rssi
+        let (i, rssi) = parse_sequence_number(i).unwrap();
+        // FIX: get bit map enum
+        let (i, comm_state) = parse_message_type(i).unwrap();
+        // https://en.wikipedia.org/wiki/Dilution_of_precision_(navigation)
+        let (i, hdop) = parse_message_type(i).unwrap();
+        // FIX: get bit map enum
+        let (i, inputs) = parse_message_type(i).unwrap();
+        // println!("inputs : {:#010b}", inputs);
+        let (i, unit_status) = parse_message_type(i).unwrap();
+        let (i, event_index) = parse_message_type(i).unwrap();
+        let (i, event_code) = parse_message_type(i).unwrap();
+        let (i, accums) = parse_message_type(i).unwrap();
+        let (i, append) = parse_message_type(i).unwrap();
+        let (_, accum_list) = parse_update_time(i).unwrap();
+        w
+        Self {
+            update_time,
+            time_of_fix,
+            latitude,
+            longitude,
+            altitude,
+            speed,
+            heading,
+            satellites,
+            fix_status,
+            carrier,
+            rssi,
+            comm_state,
+            hdop,
+            inputs,
+            unit_status,
+            event_index,
+            event_code,
+            accums,
+            append,
+            accum_list,
+        }
+    }
 }
 
 #[derive(Debug)]
