@@ -260,14 +260,32 @@ mod tests {
                 assert_eq!(longitude, -4674790000.0);
                 let (i, altitude) = parse_update_time(i).unwrap();
                 assert_eq!(altitude, 79608);
-                let (_, speed) = parse_update_time(i).unwrap();
+                let (i, speed) = parse_update_time(i).unwrap();
                 assert_eq!(speed, 11);
                 let (i, heading) = parse_sequence_number(i).unwrap();
                 assert_eq!(heading, 0);
                 let (i, satellites) = parse_message_type(i).unwrap();
                 assert_eq!(satellites, 6);
                 let (i, fix_status) = parse_message_type(i).unwrap();
-                assert_eq!(fix_status, 11);
+                assert_eq!(fix_status, 32);
+                let (i, carrier) = parse_sequence_number(i).unwrap();
+                assert_eq!(carrier, 0);
+                // FIX: is int16? signed singal rssi
+                let (i, rssi) = parse_sequence_number(i).unwrap();
+                assert_eq!(rssi, 65421);
+                // FIX: get bit map enum
+                let (i, comm_state) = parse_message_type(i).unwrap();
+                assert_eq!(comm_state, 2);
+                // println!("comm state: {:#010b}", comm_state);
+                // https://en.wikipedia.org/wiki/Dilution_of_precision_(navigation)
+                let (i, hdop) = parse_message_type(i).unwrap();
+                assert_eq!(hdop, 30);
+                // FIX: get bit map enum
+                let (i, inputs) = parse_message_type(i).unwrap();
+                assert_eq!(inputs, 30);
+                // println!("inputs : {:#010b}", inputs);
+                let (i, unit_status) = parse_message_type(i).unwrap();
+                assert_eq!(unit_status, 0);
             }
         }
     }
