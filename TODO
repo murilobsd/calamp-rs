@@ -1,0 +1,9 @@
+- [ ] fix latitude and longitude types
+- [ ] parse acumm list
+- [ ] is int16? signed singal rssi
+- [ ] bit map enum
+- example
+	- [ ] udp
+	- [ ] wasm
+- [ ] bench test
+- [ ] error
