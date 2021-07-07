@@ -17,7 +17,7 @@
 use nom::bits::{bits, streaming};
 use nom::bytes;
 use nom::error::{Error, ErrorKind};
-use nom::number::complete::be_u8;
+use nom::number::complete::{be_u16, be_u8};
 use nom::sequence::tuple;
 use nom::IResult;
 
@@ -50,6 +50,21 @@ impl<'a> ToString for MobileID<'a> {
     }
 }
 
+pub fn parse_service_type(input: &[u8]) -> IResult<&[u8], u8> {
+    let (i, a): (&[u8], u8) = be_u8::<_, (_, ErrorKind)>(input).unwrap();
+    Ok((i, a))
+}
+
+pub fn parse_message_type(input: &[u8]) -> IResult<&[u8], u8> {
+    let (i, a): (&[u8], u8) = be_u8::<_, (_, ErrorKind)>(input).unwrap();
+    Ok((i, a))
+}
+
+pub fn parse_sequence_number(input: &[u8]) -> IResult<&[u8], u16> {
+    let (i, a): (&[u8], u16) = be_u16::<_, (_, ErrorKind)>(input).unwrap();
+    Ok((i, a))
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum MobileIDType {
     Off,
@@ -69,10 +84,10 @@ pub enum MobileIDType {
     Cdma,
 }
 
-// FIX: call multiple be_u8
+// FIX: is necessary call multiple be_u8
 pub fn parse_mobile_id_type(input: &[u8]) -> IResult<&[u8], MobileIDType> {
-    be_u8::<_, (_, ErrorKind)>(input).unwrap();
-    let (i, b): (&[u8], u8) = be_u8::<_, (_, ErrorKind)>(input).unwrap();
+    let (i, _): (&[u8], u8) = be_u8::<_, (_, ErrorKind)>(input).unwrap();
+    let (i, b): (&[u8], u8) = be_u8::<_, (_, ErrorKind)>(i).unwrap();
     match b {
         0 => Ok((i, MobileIDType::Off)),
         1 => Ok((i, MobileIDType::Esn)),
@@ -171,7 +186,10 @@ pub fn parse_options_status(input: &[u8]) -> IResult<&[u8], OptionsStatus> {
 #[cfg(test)]
 mod tests {
     use super::{parse_mobile_id_type, parse_options_status};
-    use crate::{MobileID, MobileIDType, OptionsStatus};
+    use crate::{
+        parse_message_type, parse_sequence_number, parse_service_type,
+        MobileID, MobileIDType, OptionsStatus,
+    };
 
     #[test]
     fn test_parse_options_status() {
@@ -207,9 +225,15 @@ mod tests {
             assert_eq!(mobileid.to_string(), String::from("4634663235"));
 
             if b.is_mobile_id_type() {
-                let (_, mobileidtp): (&[u8], MobileIDType) =
+                let (i, mobileidtp): (&[u8], MobileIDType) =
                     parse_mobile_id_type(i).unwrap();
                 assert_eq!(mobileidtp, MobileIDType::Esn);
+                let (i, service_type) = parse_service_type(i).unwrap();
+                assert_eq!(service_type, 1);
+                let (i, message_type) = parse_message_type(i).unwrap();
+                assert_eq!(message_type, 2);
+                let (_, sequence_number) = parse_sequence_number(i).unwrap();
+                assert_eq!(sequence_number, 14982);
             }
         }
     }
