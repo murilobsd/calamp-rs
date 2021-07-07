@@ -200,19 +200,17 @@ mod tests {
         assert_eq!(b.is_response_redirection(), false);
         assert_eq!(b.is_options_extension(), false);
         assert_eq!(b.is_always_set(), true);
-        println!("{:?}", i);
 
         if b.is_mobile_id() {
             let (i, mobileid): (&[u8], MobileID) = MobileID::parse(i).unwrap();
             assert_eq!(mobileid.len(), 5);
             assert_eq!(mobileid.to_string(), String::from("4634663235"));
-            println!("{:?}", i);
-        }
-        println!("{:?}", i);
-        if b.is_mobile_id_type() {
-            let (_, mobileidtp): (&[u8], MobileIDType) =
-                parse_mobile_id_type(i).unwrap();
-            assert_eq!(mobileidtp, MobileIDType::PhoneNumber);
+
+            if b.is_mobile_id_type() {
+                let (_, mobileidtp): (&[u8], MobileIDType) =
+                    parse_mobile_id_type(i).unwrap();
+                assert_eq!(mobileidtp, MobileIDType::Esn);
+            }
         }
     }
 }
