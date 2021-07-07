@@ -17,7 +17,7 @@
 use nom::bits::{bits, streaming};
 use nom::bytes;
 use nom::error::{Error, ErrorKind};
-use nom::number::complete::{be_u16, be_u8};
+use nom::number::complete::{be_u16, be_u32, be_u8};
 use nom::sequence::tuple;
 use nom::IResult;
 
@@ -62,6 +62,11 @@ pub fn parse_message_type(input: &[u8]) -> IResult<&[u8], u8> {
 
 pub fn parse_sequence_number(input: &[u8]) -> IResult<&[u8], u16> {
     let (i, a): (&[u8], u16) = be_u16::<_, (_, ErrorKind)>(input).unwrap();
+    Ok((i, a))
+}
+
+pub fn parse_update_time(input: &[u8]) -> IResult<&[u8], u32> {
+    let (i, a): (&[u8], u32) = be_u32::<_, (_, ErrorKind)>(input).unwrap();
     Ok((i, a))
 }
 
@@ -188,7 +193,7 @@ mod tests {
     use super::{parse_mobile_id_type, parse_options_status};
     use crate::{
         parse_message_type, parse_sequence_number, parse_service_type,
-        MobileID, MobileIDType, OptionsStatus,
+        parse_update_time, MobileID, MobileIDType, OptionsStatus,
     };
 
     #[test]
@@ -228,12 +233,20 @@ mod tests {
                 let (i, mobileidtp): (&[u8], MobileIDType) =
                     parse_mobile_id_type(i).unwrap();
                 assert_eq!(mobileidtp, MobileIDType::Esn);
+
+                // message header
                 let (i, service_type) = parse_service_type(i).unwrap();
                 assert_eq!(service_type, 1);
                 let (i, message_type) = parse_message_type(i).unwrap();
                 assert_eq!(message_type, 2);
-                let (_, sequence_number) = parse_sequence_number(i).unwrap();
+                let (i, sequence_number) = parse_sequence_number(i).unwrap();
                 assert_eq!(sequence_number, 14982);
+
+                // event report == message type == 2
+                let (i, update_time) = parse_update_time(i).unwrap();
+                assert_eq!(update_time, 1609644628);
+                let (i, time_of_fix) = parse_update_time(i).unwrap();
+                assert_eq!(time_of_fix, 1609644631);
             }
         }
     }
