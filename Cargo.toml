@@ -8,7 +8,7 @@ include = [
   ".gitignore",
   "Cargo.toml",
   "benches/*.rs",
-  "src/*.rs",
+  "src/**/*",
   "tests/*.rs",
 ]
 license = "MIT"
