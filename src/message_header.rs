@@ -13,7 +13,7 @@
 //
 
 use nom::error::ErrorKind;
-use nom::number::streaming::be_u8;
+use nom::number::streaming::{be_u16, be_u8};
 use nom::IResult;
 use std::fmt;
 
@@ -184,9 +184,59 @@ impl fmt::Debug for ServiceType {
     }
 }
 
+/// Sequence Number
+///
+/// A 16-bit number used to uniquely identify a message. This number shall be
+/// initialized to 1 by the LMU on a cold boot and will be incremented in the
+/// LMU each time an inbound message is originated by the LMU. The LMU remembers
+/// its current Sequence Number during sleep. Eventually the Sequence Number
+/// will rollover from 65535 to 1, skipping zero.
+///
+/// The Sequence Number is also used to identify acknowledgements and
+/// retransmissions. Responses to Acknowledged Requests shall contain the
+/// Sequence Number from the associated Acknowledged Request. A Server receiving
+/// from an LMU can also use the Sequence Number as a means to identify whether
+/// the received message is an original or a retransmitted copy, thus avoiding
+/// processing any duplicate reports from an LMU.
+///
+/// A Server can set the Sequence Number field to zero for all outbound messages
+/// sent to the LMU if it is not important that the LMU distinguish an original
+/// message from a retransmitted copy. However, if this distinction is
+/// necessary, the server can insert a changing non-zero value into the Sequence
+/// Number field of each new message sent to the LMU. The LMU will remember the
+/// last sequence number it received and will compare it to the non-zero
+/// sequence number for the new message. If different, it will process the
+/// message normally. If the same, it will not process the message and will
+/// return a NAK response with the 'ACK' field set to 7.
+#[derive(Clone, PartialEq, Eq)]
+pub struct SequenceNumber(u16);
+
+impl fmt::Display for SequenceNumber {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl fmt::Debug for SequenceNumber {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "SequenceNumber({})", self.0)
+    }
+}
+
+impl SequenceNumber {
+    pub fn parse(input: &[u8]) -> IResult<&[u8], SequenceNumber> {
+        let (i, b): (&[u8], u16) = be_u16::<_, (_, ErrorKind)>(input).unwrap();
+        Ok((i, SequenceNumber(b)))
+    }
+
+    pub fn data(&self) -> u16 {
+        self.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{MessageType, ServiceType};
+    use super::{MessageType, SequenceNumber, ServiceType};
     use crate::options_header::{MobileIDType, OptionsHeader};
 
     #[test]
@@ -218,6 +268,14 @@ mod tests {
         assert_eq!(
             format!("{}", message_type),
             String::from("MessageType::EventReport")
+        );
+
+        let (i, sequence_number) = SequenceNumber::parse(i).unwrap();
+        assert_eq!(sequence_number.data(), 14982);
+        assert_eq!(format!("{}", sequence_number), String::from("14982"));
+        assert_eq!(
+            format!("{:?}", sequence_number),
+            String::from("SequenceNumber(14982)")
         );
     }
 }
