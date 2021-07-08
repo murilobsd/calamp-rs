@@ -18,3 +18,17 @@ pub mod message_header;
 pub mod messages;
 pub mod options_header;
 mod utils;
+
+use message_header::MessageHeader;
+use messages::event_report::EventReport;
+use options_header::OptionsHeader;
+
+pub struct Message<'a> {
+    pub options_header: Option<OptionsHeader<'a>>,
+    pub message_header: MessageHeader,
+    pub event_report: EventReport,
+}
+
+impl<'a> Message<'a> {
+    pub fn parse(_input: &[u8]) {}
+}
