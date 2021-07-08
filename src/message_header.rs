@@ -19,20 +19,35 @@ use std::fmt;
 
 #[derive(PartialEq, Eq)]
 pub enum MessageType {
+    /// Null message
     Null,
+    /// Ack/Nak message
     AckNak,
+    /// Event Report message
     EventReport,
+    /// ID Report message
     IDReport,
+    /// User data message
     UserData,
+    /// Application data message
     ApplicationData,
+    /// Configuration parameter message
     ConfigurationParameter,
+    /// Unit request message
     UnitRequest,
+    /// Locate report message
     LocateReport,
+    /// User data with accumulators message
     UserDataWithAccumulators,
+    /// Mini event report message
     MiniEventReport,
+    /// Mini user data message
     MiniUserData,
+    /// Mini application message
     MiniApplication,
+    /// Device version message
     DeviceVersion,
+    /// Application message with accumulators
     ApplicationMessageWithAccumulators,
 }
 
@@ -234,10 +249,33 @@ impl SequenceNumber {
     }
 }
 
+pub struct MessageHeader {
+    pub service_type: ServiceType,
+    pub message_type: MessageType,
+    pub sequence_number: SequenceNumber,
+}
+
+impl MessageHeader {
+    pub fn parse(input: &[u8]) -> IResult<&[u8], MessageHeader> {
+        let (i, service_type) = ServiceType::parse(input).unwrap();
+        let (i, message_type) = MessageType::parse(i).unwrap();
+        let (i, sequence_number) = SequenceNumber::parse(i).unwrap();
+
+        Ok((
+            i,
+            MessageHeader {
+                service_type,
+                message_type,
+                sequence_number,
+            },
+        ))
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{MessageType, SequenceNumber, ServiceType};
-    use crate::options_header::{MobileIDType, OptionsHeader};
+    use super::{MessageHeader, MessageType, SequenceNumber, ServiceType};
+    use crate::options_header::OptionsHeader;
 
     #[test]
     fn test_parse_message_headers() {
@@ -256,25 +294,26 @@ mod tests {
         ];
 
         let (i, _) = OptionsHeader::parse(&data).unwrap();
-        let (i, service_type) = ServiceType::parse(i).unwrap();
-        assert_eq!(service_type, ServiceType::Acknowledged);
+        let (_, message_header) = MessageHeader::parse(i).unwrap();
+        assert_eq!(message_header.service_type, ServiceType::Acknowledged);
         assert_eq!(
-            format!("{}", service_type),
+            format!("{}", message_header.service_type),
             String::from("ServiceType::Acknowledged")
         );
 
-        let (i, message_type) = MessageType::parse(i).unwrap();
-        assert_eq!(message_type, MessageType::EventReport);
+        assert_eq!(message_header.message_type, MessageType::EventReport);
         assert_eq!(
-            format!("{}", message_type),
+            format!("{}", message_header.message_type),
             String::from("MessageType::EventReport")
         );
 
-        let (i, sequence_number) = SequenceNumber::parse(i).unwrap();
-        assert_eq!(sequence_number.data(), 14982);
-        assert_eq!(format!("{}", sequence_number), String::from("14982"));
+        assert_eq!(message_header.sequence_number.data(), 14982);
         assert_eq!(
-            format!("{:?}", sequence_number),
+            format!("{}", message_header.sequence_number),
+            String::from("14982")
+        );
+        assert_eq!(
+            format!("{:?}", message_header.sequence_number),
             String::from("SequenceNumber(14982)")
         );
     }
