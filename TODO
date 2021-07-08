@@ -1,3 +1,7 @@
+- OptionsHeaders
+ - [x] options status
+ - [x] mobile id
+ - [x] mobile id type
 - [ ] is necessary call multiple be_u8
 - [ ] fix latitude and longitude types
 - [ ] parse acumm list
