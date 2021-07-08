@@ -24,3 +24,6 @@ description = "Parser for the Calamp LMDirect message protocol"
 
 [dependencies]
 nom = "6.2.0"
+
+[dev-dependencies]
+approx = "0.5.0"

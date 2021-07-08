@@ -1,3 +1,4 @@
+- [ ] is necessary call multiple be_u8
 - [ ] fix latitude and longitude types
 - [ ] parse acumm list
 - [ ] is int16? signed singal rssi
