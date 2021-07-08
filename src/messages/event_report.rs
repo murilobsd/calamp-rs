@@ -12,6 +12,8 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //
 
+use std::fmt;
+
 use nom::bits::{bits, streaming};
 use nom::error::Error;
 use nom::IResult;
@@ -75,7 +77,7 @@ impl FixStatus {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 pub enum NetworkTechnology {
     /// 2G
     CdmaGsm,
@@ -100,6 +102,36 @@ impl NetworkTechnology {
             10 => Ok((i, NetworkTechnology::Lte)),
             11 => Ok((i, NetworkTechnology::Reserved)),
             _ => panic!("not found"),
+        }
+    }
+}
+
+impl fmt::Display for NetworkTechnology {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            NetworkTechnology::CdmaGsm => {
+                write!(f, "NetworkTechnology::CdmaGsm")
+            }
+            NetworkTechnology::Umts => write!(f, "NetworkTechnology::Umts"),
+            NetworkTechnology::Lte => write!(f, "NetworkTechnology::Lte"),
+            NetworkTechnology::Reserved => {
+                write!(f, "NetworkTechnology::Reserved")
+            }
+        }
+    }
+}
+
+impl fmt::Debug for NetworkTechnology {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            NetworkTechnology::CdmaGsm => {
+                write!(f, "NetworkTechnology::CdmaGsm")
+            }
+            NetworkTechnology::Umts => write!(f, "NetworkTechnology::Umts"),
+            NetworkTechnology::Lte => write!(f, "NetworkTechnology::Lte"),
+            NetworkTechnology::Reserved => {
+                write!(f, "NetworkTechnology::Reserved")
+            }
         }
     }
 }
