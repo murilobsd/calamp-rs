@@ -11,3 +11,30 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //
+
+pub enum MessageType {
+    Null,
+    AckNak,
+    EventReport,
+    IDReport,
+    UserData,
+    ApplicationData,
+    ConfigurationParameter,
+    UnitRequest,
+    LocateReport,
+    UserDataWithAccumulators,
+    MiniEventReport,
+    MiniUserData,
+    MiniApplication,
+    DeviceVersion,
+    ApplicationMessageWithAccumulators,
+}
+
+pub enum ServiceType {
+    /// Unacknowledged Request
+    Unacknowledged,
+    /// Acknowledged Request
+    Acknowledged,
+    /// Response to an Acknowledged Request
+    ResponseToAnAcknowledged,
+}
