@@ -12,34 +12,209 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //
 
-use nom::error::ErrorKind;
-use nom::number::streaming::{be_i32, be_u16, be_u32, be_u8};
+use nom::bits::{bits, streaming};
+use nom::error::Error;
 use nom::IResult;
 
-pub(crate) fn parse_service_type(input: &[u8]) -> IResult<&[u8], u8> {
-    let (i, a): (&[u8], u8) = be_u8::<_, (_, ErrorKind)>(input).unwrap();
-    Ok((i, a))
+use crate::utils;
+
+#[derive(Debug, PartialEq)]
+pub struct FixStatus {
+    /// Bit is set when the position update has a horizontal position accuracy estimate that is
+    /// less that the Horizontal Position Accuracy Threshold defined in S-Register 142 (and the
+    /// threshold is non-zero).
+    predicted: bool,
+
+    /// This bit is set when WAAS DGPS is enabled (S-Register 139) and the position has been
+    /// differentially corrected
+    diff_corrected: bool,
+
+    /// This bit is set when the current GPS fix is invalid but a previous fix’s value is
+    /// available.
+    last_know: bool,
+
+    /// This bit is set only after a power-up or reset before a valid fix is obtained.
+    invalid_fix: bool,
+
+    /// This bit is set when 3 or fewer satellites are seen/used in the GPS fix. (i.e. with 3
+    /// satellites or less, an altitude value cannot be calculated)
+    twod_fix: bool,
+
+    /// This bit is set when the message has been logged by the LMU.
+    historic: bool,
+
+    /// This bit is set only after a power-up or reset before a valid time-sync has been obtained.
+    invalid_time: bool,
 }
 
-pub(crate) fn parse_message_type(input: &[u8]) -> IResult<&[u8], u8> {
-    let (i, a): (&[u8], u8) = be_u8::<_, (_, ErrorKind)>(input).unwrap();
-    Ok((i, a))
+impl FixStatus {
+    pub fn parse(input: &[u8]) -> IResult<&[u8], FixStatus> {
+        #[allow(clippy::type_complexity)]
+        let (i, b): (&[u8], (u8, u8, u8, u8, u8, u8, u8)) =
+            bits::<_, _, Error<(&[u8], usize)>, _, _>(nom::sequence::tuple((
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+            )))(input)?;
+        Ok((
+            i,
+            FixStatus {
+                predicted: b.6 == 1,
+                diff_corrected: b.5 == 1,
+                last_know: b.4 == 1,
+                invalid_fix: b.3 == 1,
+                twod_fix: b.2 == 1,
+                historic: b.1 == 1,
+                invalid_time: b.0 == 1,
+            },
+        ))
+    }
 }
 
-pub(crate) fn parse_sequence_number(input: &[u8]) -> IResult<&[u8], u16> {
-    let (i, a): (&[u8], u16) = be_u16::<_, (_, ErrorKind)>(input).unwrap();
-    Ok((i, a))
+#[derive(Debug, PartialEq)]
+pub enum NetworkTechnology {
+    /// 2G
+    CdmaGsm,
+
+    /// 3G
+    Umts,
+
+    /// 4G
+    Lte,
+
+    /// Reserved network
+    Reserved,
 }
 
-pub(crate) fn parse_update_time(input: &[u8]) -> IResult<&[u8], u32> {
-    let (i, a): (&[u8], u32) = be_u32::<_, (_, ErrorKind)>(input).unwrap();
-    Ok((i, a))
+impl NetworkTechnology {
+    pub fn parse(input: &[u8]) -> IResult<&[u8], NetworkTechnology> {
+        let (i, b) = utils::pu8(input).unwrap();
+
+        match b {
+            0 => Ok((i, NetworkTechnology::CdmaGsm)),
+            1 => Ok((i, NetworkTechnology::Umts)),
+            10 => Ok((i, NetworkTechnology::Lte)),
+            11 => Ok((i, NetworkTechnology::Reserved)),
+            _ => panic!("not found"),
+        }
+    }
 }
 
-pub(crate) fn parse_latitude(input: &[u8]) -> IResult<&[u8], f32> {
-    let (i, a): (&[u8], i32) = be_i32::<_, (_, ErrorKind)>(input).unwrap();
-    let b = (a as f32) * 10.000;
-    Ok((i, b))
+#[derive(Debug, PartialEq)]
+pub struct CommState {
+    pub available: bool,
+    pub network_service: bool,
+    pub data_service: bool,
+    pub connected: bool,
+    pub voice_call_active: bool,
+    pub roaming: bool,
+    pub network_technology: NetworkTechnology,
+}
+
+impl CommState {
+    pub fn parse(input: &[u8]) -> IResult<&[u8], CommState> {
+        let (i, _) = utils::pu8(input).unwrap();
+        Ok((
+            i,
+            CommState {
+                available: false,
+                network_service: false,
+                data_service: false,
+                connected: false,
+                voice_call_active: false,
+                roaming: false,
+                network_technology: NetworkTechnology::CdmaGsm,
+            },
+        ))
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Inputs {
+    ignition: bool,
+    input_1: bool,
+    input_2: bool,
+    input_3: bool,
+    input_4: bool,
+    input_5: bool,
+    input_6: bool,
+    input_7: bool,
+}
+
+impl Inputs {
+    pub fn parse(input: &[u8]) -> IResult<&[u8], Inputs> {
+        #[allow(clippy::type_complexity)]
+        let (i, b): (&[u8], (u8, u8, u8, u8, u8, u8, u8, u8)) =
+            bits::<_, _, Error<(&[u8], usize)>, _, _>(nom::sequence::tuple((
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+            )))(input)?;
+        Ok((
+            i,
+            Inputs {
+                ignition: b.7 == 1,
+                input_1: b.6 == 1,
+                input_2: b.5 == 1,
+                input_3: b.4 == 1,
+                input_4: b.3 == 1,
+                input_5: b.2 == 1,
+                input_6: b.1 == 1,
+                input_7: b.0 == 1,
+            },
+        ))
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct UnitStatus {
+    ignition: bool,
+    input_1: bool,
+    input_2: bool,
+    input_3: bool,
+    input_4: bool,
+    input_5: bool,
+    input_6: bool,
+    input_7: bool,
+}
+
+impl UnitStatus {
+    pub fn parse(input: &[u8]) -> IResult<&[u8], UnitStatus> {
+        #[allow(clippy::type_complexity)]
+        let (i, b): (&[u8], (u8, u8, u8, u8, u8, u8, u8, u8)) =
+            bits::<_, _, Error<(&[u8], usize)>, _, _>(nom::sequence::tuple((
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+            )))(input)?;
+        Ok((
+            i,
+            UnitStatus {
+                ignition: b.7 == 1,
+                input_1: b.6 == 1,
+                input_2: b.5 == 1,
+                input_3: b.4 == 1,
+                input_4: b.3 == 1,
+                input_5: b.2 == 1,
+                input_6: b.1 == 1,
+                input_7: b.0 == 1,
+            },
+        ))
+    }
 }
 
 /// Event Report messages
@@ -47,7 +222,7 @@ pub(crate) fn parse_latitude(input: &[u8]) -> IResult<&[u8], f32> {
 /// Initiated by the LMU and are generated by the LMU’s Programmable Event
 /// Generator (PEG). They can be either Acknowledged or Unacknowledged Requests.
 /// The Server should respond to an Acknowledged Event Report Request with an
-/// Acknowledge Message. Event reports have the following structure:
+/// Acknowledge Message.
 #[derive(Debug, PartialEq)]
 pub struct EventReport {
     /// The time tag of the message in seconds.
@@ -66,11 +241,11 @@ pub struct EventReport {
 
     /// The altitude reading of the GPS receiver measured in centimeters above
     /// the WGS-84 Datum, signed 2’s complement.
-    pub altitude: u32,
+    pub altitude: f32,
 
     /// The speed as reported by the GPS receiver, measured in centimeters per
     /// second.
-    pub speed: u32,
+    pub speed: f32,
 
     /// The heading value reported in degrees from true North.
     pub heading: u16,
@@ -79,7 +254,7 @@ pub struct EventReport {
     pub satellites: u8,
 
     /// The current fix status of the GPS receiver bitmapped as follows
-    pub fix_status: u8,
+    pub fix_status: FixStatus,
 
     /// The identifier of the Carrier/Operator the wireless modem is currently
     /// using. For GSM, HSPA, and LTE networks, this is the MNC (mobile network
@@ -114,7 +289,7 @@ pub struct EventReport {
     /// 10 = 4G Network (LTE)
     ///
     /// 11 = Reserved
-    pub comm_state: u8,
+    pub comm_state: CommState,
 
     /// The GPS Horizontal Dilution of Precision - it is a unit-less value
     /// reported with a 0.1 lsb.
@@ -137,7 +312,7 @@ pub struct EventReport {
     /// Bit 6 – Input 6
     ///
     /// Bit 7 – Input 7
-    pub inputs: u8,
+    pub inputs: Inputs,
 
     /// Status of key modules within the unit:
     ///
@@ -156,7 +331,7 @@ pub struct EventReport {
     /// Bit 6 – Reserved, Currently Unused
     ///
     /// Bit 7 – Unused
-    pub unit_status: u8,
+    pub unit_status: UnitStatus,
 
     /// The index number of the event that generated the report; values should
     /// range from 0-249. 255 represents a Real Time PEG Action request.
@@ -189,38 +364,33 @@ pub struct EventReport {
     pub accum_list: u32,
 }
 
-/*
 impl EventReport {
     /// Parse event report
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (i, update_time) = parse_update_time(input).unwrap();
-        let (i, time_of_fix) = parse_update_time(i).unwrap();
-        let (i, latitude) = parse_latitude(i).unwrap();
-        let (i, longitude) = parse_latitude(i).unwrap();
-        let (i, altitude) = parse_update_time(i).unwrap();
-        let (i, speed) = parse_update_time(i).unwrap();
-        let (i, heading) = parse_sequence_number(i).unwrap();
-        let (i, satellites) = parse_message_type(i).unwrap();
-        let (i, fix_status) = parse_message_type(i).unwrap();
-        let (i, carrier) = parse_sequence_number(i).unwrap();
-        // FIX: is int16? signed singal rssi
-        let (i, rssi) = parse_sequence_number(i).unwrap();
-        // FIX: get bit map enum
-        let (i, comm_state) = parse_message_type(i).unwrap();
-        // https://en.wikipedia.org/wiki/Dilution_of_precision_(navigation)
-        let (i, hdop) = parse_message_type(i).unwrap();
-        // FIX: get bit map enum
-        let (i, inputs) = parse_message_type(i).unwrap();
-        // println!("inputs : {:#010b}", inputs);
-        let (i, unit_status) = parse_message_type(i).unwrap();
-        let (i, event_index) = parse_message_type(i).unwrap();
-        let (i, event_code) = parse_message_type(i).unwrap();
-        let (i, accums) = parse_message_type(i).unwrap();
-        let (i, append) = parse_message_type(i).unwrap();
-        let (_, accum_list) = parse_update_time(i).unwrap();
+    pub fn parse(input: &[u8]) -> IResult<&[u8], EventReport> {
+        let (i, update_time) = utils::pu32(input).unwrap();
+        let (i, time_of_fix) = utils::pu32(i).unwrap();
+        let (i, latitude) = utils::pf32(i).unwrap();
+        let (i, longitude) = utils::pf32(i).unwrap();
+        let (i, altitude) = utils::pf32(i).unwrap();
+        let (i, speed) = utils::pf32(i).unwrap();
+        let (i, heading) = utils::pu16(i).unwrap();
+        let (i, satellites) = utils::pu8(i).unwrap();
+        let (i, fix_status) = FixStatus::parse(i).unwrap();
+        let (i, carrier) = utils::pu16(i).unwrap();
+        let (i, rssi) = utils::pu16(i).unwrap();
+        let (i, comm_state) = CommState::parse(i).unwrap();
+        let (i, hdop) = utils::pu8(i).unwrap();
+        let (i, inputs) = Inputs::parse(i).unwrap();
+        let (i, unit_status) = UnitStatus::parse(i).unwrap();
+        let (i, event_index) = utils::pu8(i).unwrap();
+        let (i, event_code) = utils::pu8(i).unwrap();
+        let (i, accums) = utils::pu8(i).unwrap();
+        let (i, append) = utils::pu8(i).unwrap();
+        let (i, accum_list) = utils::pu32(i).unwrap();
+
         Ok((
             i,
-            Self {
+            EventReport {
                 update_time,
                 time_of_fix,
                 latitude,
@@ -245,4 +415,32 @@ impl EventReport {
         ))
     }
 }
-*/
+
+#[cfg(test)]
+mod tests {
+    use super::EventReport;
+    use crate::message_header::MessageHeader;
+    use crate::options_header::OptionsHeader;
+
+    #[test]
+    fn test_parse_event_report_message() {
+        let data: [u8; 117] = [
+            0x83, 0x05, 0x46, 0x34, 0x66, 0x32, 0x35, 0x01, 0x01, 0x01, 0x02,
+            0x3a, 0x86, 0x5f, 0xf1, 0x3a, 0x54, 0x5f, 0xf1, 0x3a, 0x57, 0xf1,
+            0xe2, 0x85, 0x78, 0xe4, 0x22, 0xd6, 0x40, 0x00, 0x01, 0x36, 0xf8,
+            0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x06, 0x20, 0x00, 0x00, 0xff,
+            0x8d, 0x02, 0x1e, 0x1e, 0x00, 0x7b, 0x21, 0x10, 0x00, 0x00, 0x00,
+            0x31, 0xe0, 0x00, 0x00, 0x10, 0x1a, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x22, 0x2a, 0x32, 0x00, 0x00, 0x03, 0xf1, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x01, 0xc8, 0x2d, 0x3f, 0x01, 0xc8, 0x2d,
+            0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x01, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let (i, _) = OptionsHeader::parse(&data).unwrap();
+        let (i, _) = MessageHeader::parse(i).unwrap();
+        let (_, event_report) = EventReport::parse(i).unwrap();
+
+        assert_eq!(event_report.update_time, 1609644628);
+    }
+}

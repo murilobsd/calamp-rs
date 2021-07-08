@@ -152,8 +152,10 @@ impl fmt::Debug for MessageType {
 pub enum ServiceType {
     /// Unacknowledged Request
     Unacknowledged,
+
     /// Acknowledged Request
     Acknowledged,
+
     /// Response to an Acknowledged Request
     ResponseToAnAcknowledged,
 }
@@ -274,7 +276,7 @@ impl MessageHeader {
 
 #[cfg(test)]
 mod tests {
-    use super::{MessageHeader, MessageType, SequenceNumber, ServiceType};
+    use super::{MessageHeader, MessageType, ServiceType};
     use crate::options_header::OptionsHeader;
 
     #[test]
