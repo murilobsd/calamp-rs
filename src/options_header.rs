@@ -196,6 +196,11 @@ fn is_options_header(input: u8) -> bool {
 pub struct OptionsHeader<'a> {
     pub mobile_id: Option<MobileID<'a>>,
     pub mobile_id_type: Option<MobileIDType>,
+    pub authentication_world: Option<bool>,
+    pub routing: Option<bool>,
+    pub forwarding: Option<bool>,
+    pub response_redirection: Option<bool>,
+    pub options_extension: Option<bool>,
 }
 
 impl<'a> OptionsHeader<'a> {
@@ -209,6 +214,11 @@ impl<'a> OptionsHeader<'a> {
         let mut opt_header = OptionsHeader {
             mobile_id: None,
             mobile_id_type: None,
+            authentication_world: None,
+            routing: None,
+            forwarding: None,
+            response_redirection: None,
+            options_extension: None,
         };
         let mut inp: &[u8] = &[];
 
@@ -224,6 +234,25 @@ impl<'a> OptionsHeader<'a> {
             let (i, mob_id_tp) = MobileIDType::parse(inp)?;
             opt_header.mobile_id_type = Some(mob_id_tp);
             inp = i;
+        }
+
+        if opt_status.is_authentication_world() {
+            unimplemented!()
+        }
+        if opt_status.is_routing() {
+            unimplemented!()
+        }
+
+        if opt_status.is_forwarding() {
+            unimplemented!()
+        }
+
+        if opt_status.is_response_redirection() {
+            unimplemented!()
+        }
+
+        if opt_status.is_options_extension() {
+            unimplemented!()
         }
 
         Ok((inp, opt_header))
