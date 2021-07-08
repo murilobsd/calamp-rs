@@ -21,7 +21,7 @@ use nom::IResult;
 
 const OPTIONS_HEADER: u8 = 0x83;
 
-#[derive(PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum MobileIDType {
     Off,
 
@@ -50,21 +50,22 @@ pub enum MobileIDType {
     Cdma,
 }
 
-// FIX: is necessary call multiple be_u8
-pub fn parse_mobile_id_type(input: &[u8]) -> IResult<&[u8], MobileIDType> {
-    let (i, _): (&[u8], u8) = be_u8::<_, (_, ErrorKind)>(input).unwrap();
-    let (i, b): (&[u8], u8) = be_u8::<_, (_, ErrorKind)>(i).unwrap();
+impl MobileIDType {
+    pub fn parse(input: &[u8]) -> IResult<&[u8], MobileIDType> {
+        let (i, _): (&[u8], u8) = be_u8::<_, (_, ErrorKind)>(input).unwrap();
+        let (i, b): (&[u8], u8) = be_u8::<_, (_, ErrorKind)>(i).unwrap();
 
-    match b {
-        0 => Ok((i, MobileIDType::Off)),
-        1 => Ok((i, MobileIDType::Esn)),
-        2 => Ok((i, MobileIDType::Equipment)),
-        3 => Ok((i, MobileIDType::Subscriber)),
-        4 => Ok((i, MobileIDType::Defined)),
-        5 => Ok((i, MobileIDType::PhoneNumber)),
-        6 => Ok((i, MobileIDType::IpAddress)),
-        7 => Ok((i, MobileIDType::Cdma)),
-        _ => panic!("not found"),
+        match b {
+            0 => Ok((i, MobileIDType::Off)),
+            1 => Ok((i, MobileIDType::Esn)),
+            2 => Ok((i, MobileIDType::Equipment)),
+            3 => Ok((i, MobileIDType::Subscriber)),
+            4 => Ok((i, MobileIDType::Defined)),
+            5 => Ok((i, MobileIDType::PhoneNumber)),
+            6 => Ok((i, MobileIDType::IpAddress)),
+            7 => Ok((i, MobileIDType::Cdma)),
+            _ => panic!("not found"),
+        }
     }
 }
 
@@ -194,26 +195,42 @@ fn is_options_header(input: u8) -> bool {
 
 pub struct OptionsHeader<'a> {
     pub mobile_id: Option<MobileID<'a>>,
+    pub mobile_id_type: Option<MobileIDType>,
 }
 
 impl<'a> OptionsHeader<'a> {
     pub fn parse(input: &'a [u8]) -> IResult<&[u8], Self> {
+        // FIX: return error
         if !is_options_header(input[0]) {
             panic!("");
         }
+
         let (i, opt_status) = parse_options_status(input)?;
-        let mut opt_header = OptionsHeader { mobile_id: None };
+        let mut opt_header = OptionsHeader {
+            mobile_id: None,
+            mobile_id_type: None,
+        };
         let mut inp: &[u8] = &[];
+
+        // check mobile id
         if opt_status.is_mobile_id() {
             let (i, mob_id) = MobileID::parse(i)?;
             opt_header.mobile_id = Some(mob_id);
             inp = i;
         }
+
+        // check mobile id type
+        if opt_status.is_mobile_id_type() {
+            let (i, mob_id_tp) = MobileIDType::parse(inp)?;
+            opt_header.mobile_id_type = Some(mob_id_tp);
+            inp = i;
+        }
+
         Ok((inp, opt_header))
     }
 }
 
-pub fn parse_options_status(input: &[u8]) -> IResult<&[u8], OptionsStatus> {
+fn parse_options_status(input: &[u8]) -> IResult<&[u8], OptionsStatus> {
     #[allow(clippy::type_complexity)]
     let (i, b): (&[u8], (u8, u8, u8, u8, u8, u8, u8, u8)) =
         bits::<_, _, Error<(&[u8], usize)>, _, _>(nom::sequence::tuple((
@@ -243,10 +260,10 @@ pub fn parse_options_status(input: &[u8]) -> IResult<&[u8], OptionsStatus> {
 
 #[cfg(test)]
 mod tests {
-    use super::OptionsHeader;
+    use super::{MobileIDType, OptionsHeader};
 
     #[test]
-    fn test_parse_options_status() {
+    fn test_parse_options_headers() {
         let data: [u8; 117] = [
             0x83, 0x05, 0x46, 0x34, 0x66, 0x32, 0x35, 0x01, 0x01, 0x01, 0x02,
             0x3a, 0x86, 0x5f, 0xf1, 0x3a, 0x54, 0x5f, 0xf1, 0x3a, 0x57, 0xf1,
@@ -262,12 +279,20 @@ mod tests {
         ];
 
         let (i, opt_header) = OptionsHeader::parse(&data).unwrap();
+        assert_eq!(i.len(), 108);
+
         if let Some(mob_id) = opt_header.mobile_id {
             assert_eq!(mob_id.len(), 5);
             assert_eq!(mob_id.to_string(), String::from("4634663235"));
         }
 
-        assert_eq!(i.len(), 110);
+        if let Some(mob_id_tp) = opt_header.mobile_id_type {
+            assert_eq!(mob_id_tp, MobileIDType::Esn);
+            assert_eq!(
+                format!("{}", mob_id_tp),
+                String::from("MobileIDType::Esn")
+            );
+        }
     }
 }
 
