@@ -56,7 +56,7 @@ Message Type: MessageType::EventReport
 
 First, thank you for contributing.
 
-One great way to contribute to Criterion.rs is to use it for your own
+One great way to contribute to calamp-rs is to use it for your own
 benchmarking needs and report your experiences, file and comment on issues,
 etc.
 
