@@ -230,14 +230,29 @@ impl Inputs {
 
 #[derive(Debug, PartialEq)]
 pub struct UnitStatus {
-    ignition: bool,
-    input_1: bool,
-    input_2: bool,
-    input_3: bool,
-    input_4: bool,
-    input_5: bool,
-    input_6: bool,
-    input_7: bool,
+    /// LMU32: HTTP OTA Update Status (0=OK, 1=Error), LMU8: Unused
+    pub ota_update: bool,
+
+    /// GPS Antenna Status (0=OK, 1=Error)
+    pub gps_antenna: bool,
+
+    /// GPS Receiver Self-Test (0=OK, 1=Error) (LMU32 only)
+    pub gps_self_test: bool,
+
+    /// GPS Receiver Tracking (0=Yes, 1=No)
+    pub gps_tracking: bool,
+
+    /// Reserved, Currently Unused
+    pub reserved_1: bool,
+
+    /// Reserved, Currently Unused
+    pub reserved_2: bool,
+
+    /// Reserved, Currently Unused
+    pub reserved_3: bool,
+
+    /// Unused
+    unused: bool,
 }
 
 impl UnitStatus {
@@ -257,14 +272,14 @@ impl UnitStatus {
         Ok((
             i,
             UnitStatus {
-                ignition: b.7 == 1,
-                input_1: b.6 == 1,
-                input_2: b.5 == 1,
-                input_3: b.4 == 1,
-                input_4: b.3 == 1,
-                input_5: b.2 == 1,
-                input_6: b.1 == 1,
-                input_7: b.0 == 1,
+                ota_update: b.7 == 0,
+                gps_antenna: b.6 == 0,
+                gps_self_test: b.5 == 0,
+                gps_tracking: b.4 == 0,
+                reserved_1: b.3 == 0,
+                reserved_2: b.2 == 0,
+                reserved_3: b.1 == 0,
+                unused: b.0 == 0,
             },
         ))
     }
@@ -510,7 +525,7 @@ mod tests {
         approx::assert_relative_eq!(event_report.speed, 0.0000011);
         assert_eq!(event_report.heading, 0);
         assert_eq!(event_report.satellites, 6);
-        // assert_eq!(event_report.fix_status, 0);
+        assert_eq!(event_report.fix_status.twod_fix, true);
         assert_eq!(event_report.carrier, 0);
         assert_eq!(event_report.rssi, -115);
         assert_eq!(event_report.comm_state.available, false);
@@ -519,8 +534,8 @@ mod tests {
             NetworkTechnology::CdmaGsm
         );
         assert_eq!(event_report.hdop, 30);
-        // assert_eq!(event_report.inputs, 0);
-        // assert_eq!(event_report.unit_status, 0);
+        assert_eq!(event_report.inputs.ignition, false);
+        assert_eq!(event_report.unit_status.gps_antenna, true);
         assert_eq!(event_report.event_index, 123);
         assert_eq!(event_report.event_code, 33);
         assert_eq!(event_report.accums, 16);
