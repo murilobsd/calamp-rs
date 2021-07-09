@@ -194,17 +194,30 @@ fn is_options_header(input: u8) -> bool {
 }
 
 pub struct OptionsHeader<'a> {
+    /// Mobile id
     pub mobile_id: Option<MobileID<'a>>,
+
+    /// Mobile id type
     pub mobile_id_type: Option<MobileIDType>,
+
+    /// Authentication World
     pub authentication_world: Option<bool>,
+
+    /// Routing
     pub routing: Option<bool>,
+
+    /// Forwarding
     pub forwarding: Option<bool>,
+
+    /// Response Redirection
     pub response_redirection: Option<bool>,
+
+    /// Options Extension
     pub options_extension: Option<bool>,
 }
 
 impl<'a> OptionsHeader<'a> {
-    pub fn parse(input: &'a [u8]) -> IResult<&[u8], Self> {
+    pub fn parse(input: &'a [u8]) -> IResult<&[u8], Option<Self>> {
         // FIX: return error
         if !is_options_header(input[0]) {
             panic!("");
@@ -255,7 +268,7 @@ impl<'a> OptionsHeader<'a> {
             unimplemented!()
         }
 
-        Ok((inp, opt_header))
+        Ok((inp, Some(opt_header)))
     }
 }
 
@@ -308,128 +321,24 @@ mod tests {
         ];
 
         let (i, opt_header) = OptionsHeader::parse(&data).unwrap();
-        assert_eq!(i.len(), 108);
+        match opt_header {
+            Some(opt_h) => {
+                assert_eq!(i.len(), 108);
 
-        if let Some(mob_id) = opt_header.mobile_id {
-            assert_eq!(mob_id.len(), 5);
-            assert_eq!(mob_id.to_string(), String::from("4634663235"));
-        }
+                if let Some(mob_id) = opt_h.mobile_id {
+                    assert_eq!(mob_id.len(), 5);
+                    assert_eq!(mob_id.to_string(), String::from("4634663235"));
+                }
 
-        if let Some(mob_id_tp) = opt_header.mobile_id_type {
-            assert_eq!(mob_id_tp, MobileIDType::Esn);
-            assert_eq!(
-                format!("{}", mob_id_tp),
-                String::from("MobileIDType::Esn")
-            );
-        }
-    }
-}
-
-/*
-#[cfg(test)]
-mod tests {
-    use super::{parse_mobile_id_type, parse_options_status};
-    use crate::{
-        mobileid, mobileidtype, optionsstatus, parse_latitude,
-        parse_message_type, parse_sequence_number, parse_service_type,
-        parse_update_time,
-    };
-
-    #[test]
-    fn test_parse_options_status() {
-        let data: [u8; 117] = [
-            0x83, 0x05, 0x46, 0x34, 0x66, 0x32, 0x35, 0x01, 0x01, 0x01, 0x02,
-            0x3a, 0x86, 0x5f, 0xf1, 0x3a, 0x54, 0x5f, 0xf1, 0x3a, 0x57, 0xf1,
-            0xe2, 0x85, 0x78, 0xe4, 0x22, 0xd6, 0x40, 0x00, 0x01, 0x36, 0xf8,
-            0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x06, 0x20, 0x00, 0x00, 0xff,
-            0x8d, 0x02, 0x1e, 0x1e, 0x00, 0x7b, 0x21, 0x10, 0x00, 0x00, 0x00,
-            0x31, 0xe0, 0x00, 0x00, 0x10, 0x1a, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x22, 0x2a, 0x32, 0x00, 0x00, 0x03, 0xf1, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x01, 0xc8, 0x2d, 0x3f, 0x01, 0xc8, 0x2d,
-            0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x01, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ];
-
-        let (i, b): (&[u8], optionsstatus) =
-            parse_options_status(&data).unwrap();
-
-        assert_eq!(b.is_mobile_id(), true);
-        assert_eq!(b.is_mobile_id_type(), true);
-        assert_eq!(b.is_authentication_world(), false);
-        assert_eq!(b.is_routing(), false);
-        assert_eq!(b.is_forwarding(), false);
-        assert_eq!(b.is_response_redirection(), false);
-        assert_eq!(b.is_options_extension(), false);
-        assert_eq!(b.is_always_set(), true);
-
-        if b.is_mobile_id() {
-            let (i, mobileid): (&[u8], mobileid) = mobileid::parse(i).unwrap();
-            assert_eq!(mobileid.len(), 5);
-            assert_eq!(mobileid.to_string(), String::from("4634663235"));
-
-            if b.is_mobile_id_type() {
-                let (i, mobileidtp): (&[u8], mobileidtype) =
-                    parse_mobile_id_type(i).unwrap();
-                assert_eq!(mobileidtp, mobileidtype::esn);
-
-                // message header
-                let (i, service_type) = parse_service_type(i).unwrap();
-                assert_eq!(service_type, 1);
-                let (i, message_type) = parse_message_type(i).unwrap();
-                assert_eq!(message_type, 2);
-                let (i, sequence_number) = parse_sequence_number(i).unwrap();
-                assert_eq!(sequence_number, 14982);
-
-                // event report == message type == 2
-                // let (i, update_time) = parse_update_time(i).unwrap();
-                // assert_eq!(update_time, 1609644628);
-                // let (i, time_of_fix) = parse_update_time(i).unwrap();
-                // assert_eq!(time_of_fix, 1609644631);
-                // let (i, latitude) = parse_latitude(i).unwrap();
-                // assert_eq!(latitude, -2368129300.0);
-                // let (i, longitude) = parse_latitude(i).unwrap();
-                // assert_eq!(longitude, -4674790000.0);
-                // let (i, altitude) = parse_update_time(i).unwrap();
-                // assert_eq!(altitude, 79608);
-                // let (i, speed) = parse_update_time(i).unwrap();
-                // assert_eq!(speed, 11);
-                // let (i, heading) = parse_sequence_number(i).unwrap();
-                // assert_eq!(heading, 0);
-                // let (i, satellites) = parse_message_type(i).unwrap();
-                // assert_eq!(satellites, 6);
-                // let (i, fix_status) = parse_message_type(i).unwrap();
-                // assert_eq!(fix_status, 32);
-                // let (i, carrier) = parse_sequence_number(i).unwrap();
-                // assert_eq!(carrier, 0);
-                // // fix: is int16? signed singal rssi
-                // let (i, rssi) = parse_sequence_number(i).unwrap();
-                // assert_eq!(rssi, 65421);
-                // // fix: get bit map enum
-                // let (i, comm_state) = parse_message_type(i).unwrap();
-                // assert_eq!(comm_state, 2);
-                // // println!("comm state: {:#010b}", comm_state);
-                // // https://en.wikipedia.org/wiki/dilution_of_precision_(navigation)
-                // let (i, hdop) = parse_message_type(i).unwrap();
-                // assert_eq!(hdop, 30);
-                // // fix: get bit map enum
-                // let (i, inputs) = parse_message_type(i).unwrap();
-                // assert_eq!(inputs, 30);
-                // // println!("inputs : {:#010b}", inputs);
-                // let (i, unit_status) = parse_message_type(i).unwrap();
-                // assert_eq!(unit_status, 0);
-                // let (i, event_index) = parse_message_type(i).unwrap();
-                // assert_eq!(event_index, 123);
-                // let (i, event_code) = parse_message_type(i).unwrap();
-                // assert_eq!(event_code, 33);
-                // let (i, accums) = parse_message_type(i).unwrap();
-                // assert_eq!(accums, 16);
-                // let (i, append) = parse_message_type(i).unwrap();
-                // assert_eq!(append, 0);
-                // let (_, accum_list) = parse_update_time(i).unwrap();
-                // assert_eq!(accum_list, 12768);
+                if let Some(mob_id_tp) = opt_h.mobile_id_type {
+                    assert_eq!(mob_id_tp, MobileIDType::Esn);
+                    assert_eq!(
+                        format!("{}", mob_id_tp),
+                        String::from("MobileIDType::Esn")
+                    );
+                }
             }
+            None => (),
         }
     }
 }
-*/

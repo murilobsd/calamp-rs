@@ -85,6 +85,6 @@ For more details, see the [CONTRIBUTING.md](CONTRIBUTING.md) file.
 
 ## License
 
-Calamp-rs is distributed under the terms of both the BSD2 license.
+Calamp-rs is distributed under the terms of the BSD2 license.
 
 See [LICENSE](LICENSE)
