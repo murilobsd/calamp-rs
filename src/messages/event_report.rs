@@ -350,7 +350,7 @@ pub struct EventReport {
     /// the Event Report following the list of accumulators. Each data type
     /// starts with a single length byte followed by the data. If multiple data
     /// types are present, they shall appear in order of the bits set in the
-    /// ‘Append’ byte, starting with bit 0.
+    /// 'Append' byte, starting with bit 0.
     ///
     /// Bit 0 – Cell Info (see 'Appended Data' section below).
     ///
@@ -360,13 +360,14 @@ pub struct EventReport {
     /// A list of ‘n’ 4-byte fields where ‘n’ is defined in the Accums field.
     /// The format for this list is dependent upon the Accumulator Reporting
     /// Format Type also defined in the Accums field. Refer to Appendix G,
-    /// ‘Accumulator Reporting Formats’ for details.
-    pub accum_list: u32,
+    /// 'Accumulator Reporting Formats' for details.
+    pub accum_list: Vec<u32>,
 }
 
 impl EventReport {
     /// Parse event report
     pub fn parse(input: &[u8]) -> IResult<&[u8], EventReport> {
+        let mut accum_list: Vec<u32> = vec![];
         let (i, update_time) = utils::pu32(input).unwrap();
         let (i, time_of_fix) = utils::pu32(i).unwrap();
         let (i, latitude) = utils::pf32(i).unwrap();
@@ -386,7 +387,12 @@ impl EventReport {
         let (i, event_code) = utils::pu8(i).unwrap();
         let (i, accums) = utils::pu8(i).unwrap();
         let (i, append) = utils::pu8(i).unwrap();
-        let (i, accum_list) = utils::pu32(i).unwrap();
+        let mut inp = i;
+        for _ in 0..accums {
+            let (x, v) = utils::pu32(inp).unwrap();
+            inp = x;
+            accum_list.push(v);
+        }
 
         Ok((
             i,
@@ -464,6 +470,6 @@ mod tests {
         assert_eq!(event_report.event_code, 33);
         assert_eq!(event_report.accums, 16);
         assert_eq!(event_report.append, 0);
-        // assert_eq!(event_report.accum_list, 0);
+        assert_eq!(event_report.accum_list.len(), 16);
     }
 }
