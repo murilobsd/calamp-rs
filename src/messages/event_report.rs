@@ -93,14 +93,12 @@ pub enum NetworkTechnology {
 }
 
 impl NetworkTechnology {
-    pub fn parse(input: &[u8]) -> IResult<&[u8], NetworkTechnology> {
-        let (i, b) = utils::pu8(input).unwrap();
-
-        match b {
-            0 => Ok((i, NetworkTechnology::CdmaGsm)),
-            1 => Ok((i, NetworkTechnology::Umts)),
-            10 => Ok((i, NetworkTechnology::Lte)),
-            11 => Ok((i, NetworkTechnology::Reserved)),
+    pub fn parse(input: u8) -> NetworkTechnology {
+        match input {
+            0 => NetworkTechnology::CdmaGsm,
+            1 => NetworkTechnology::Umts,
+            10 => NetworkTechnology::Lte,
+            11 => NetworkTechnology::Reserved,
             _ => panic!("not found"),
         }
     }
@@ -138,28 +136,51 @@ impl fmt::Debug for NetworkTechnology {
 
 #[derive(Debug, PartialEq)]
 pub struct CommState {
+    /// Available
     pub available: bool,
+
+    /// Network service
     pub network_service: bool,
+
+    /// Data service
     pub data_service: bool,
+
+    /// Connected
     pub connected: bool,
+
+    /// Voice call active
     pub voice_call_active: bool,
+
+    /// Roaming
     pub roaming: bool,
+
+    /// Network Technology
     pub network_technology: NetworkTechnology,
 }
 
 impl CommState {
     pub fn parse(input: &[u8]) -> IResult<&[u8], CommState> {
-        let (i, _) = utils::pu8(input).unwrap();
+        #[allow(clippy::type_complexity)]
+        let (i, b): (&[u8], (u8, u8, u8, u8, u8, u8, u8)) =
+            bits::<_, _, Error<(&[u8], usize)>, _, _>(nom::sequence::tuple((
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(1u8),
+                streaming::take(2u8),
+            )))(input)?;
         Ok((
             i,
             CommState {
-                available: false,
-                network_service: false,
-                data_service: false,
-                connected: false,
-                voice_call_active: false,
-                roaming: false,
-                network_technology: NetworkTechnology::CdmaGsm,
+                available: b.6 == 1,
+                network_service: b.5 == 1,
+                data_service: b.4 == 1,
+                connected: b.3 == 1,
+                voice_call_active: b.2 == 1,
+                roaming: b.1 == 1,
+                network_technology: NetworkTechnology::parse(b.0),
             },
         ))
     }
