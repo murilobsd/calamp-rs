@@ -1,6 +1,6 @@
 [package]
 name = "calamp-rs"
-version = "0.1.4"
+version = "0.2.4"
 authors = ["msi <mbsd@m0x.ru>"]
 edition = "2018"
 include = [
@@ -26,6 +26,7 @@ description = "Parser for the Calamp LMDirect message protocol"
 [dependencies]
 nom = "6.2.0"
 chrono = { version = "0.4.19", optional = true }
+serde = { version = "1.0.126", optional = true, features = ["derive"] }
 
 [dev-dependencies]
 approx = "0.5.0"

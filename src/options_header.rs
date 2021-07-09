@@ -18,10 +18,13 @@ use nom::bits::{bits, streaming};
 use nom::error::{Error, ErrorKind};
 use nom::number::streaming::be_u8;
 use nom::IResult;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 const OPTIONS_HEADER: u8 = 0x83;
 
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum MobileIDType {
     Off,
 
@@ -100,17 +103,22 @@ impl fmt::Debug for MobileIDType {
 }
 
 #[derive(Debug)]
-pub struct MobileID<'a>(&'a [u8]);
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct MobileID(pub String);
 
-impl<'a> MobileID<'a> {
+impl MobileID {
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
-    pub fn parse(input: &'a [u8]) -> IResult<&[u8], Self> {
+    pub fn parse(input: &[u8]) -> IResult<&[u8], Self> {
         let (i, a): (&[u8], u8) = be_u8::<_, (_, ErrorKind)>(input).unwrap();
         let (i, b): (&[u8], &[u8]) = nom::bytes::streaming::take(a)(i)?;
-        Ok((i, Self(b)))
+        let mut id = String::from("");
+        for d in b.iter() {
+            id.push_str(&format!("{0:2x}", d))
+        }
+        Ok((i, Self(id)))
     }
 
     pub fn is_empty(&self) -> bool {
@@ -118,41 +126,32 @@ impl<'a> MobileID<'a> {
     }
 }
 
-impl<'a> ToString for MobileID<'a> {
-    fn to_string(&self) -> String {
-        let mut id = String::from("");
-        for d in self.0.iter() {
-            id.push_str(&format!("{0:2x}", d))
-        }
-        id
-    }
-}
-
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct OptionsStatus {
     /// MobileID is set
-    is_mobile_id: bool,
+    pub is_mobile_id: bool,
 
     /// MobileIdType is set
-    is_mobile_id_type: bool,
+    pub is_mobile_id_type: bool,
 
     /// Authentication World is set
-    is_authentication_world: bool,
+    pub is_authentication_world: bool,
 
     /// Routing is set
-    is_routing: bool,
+    pub is_routing: bool,
 
     /// Forwarding is set
-    is_forwarding: bool,
+    pub is_forwarding: bool,
 
     /// Response redirections is set
-    is_response_redirection: bool,
+    pub is_response_redirection: bool,
 
     /// Options extension is set
-    is_options_extension: bool,
+    pub is_options_extension: bool,
 
     /// Options headers exist
-    is_always_set: bool,
+    pub is_always_set: bool,
 }
 
 impl OptionsStatus {
@@ -193,9 +192,11 @@ fn is_options_header(input: u8) -> bool {
     input == OPTIONS_HEADER
 }
 
-pub struct OptionsHeader<'a> {
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct OptionsHeader {
     /// Mobile id
-    pub mobile_id: Option<MobileID<'a>>,
+    pub mobile_id: Option<MobileID>,
 
     /// Mobile id type
     pub mobile_id_type: Option<MobileIDType>,
@@ -216,8 +217,8 @@ pub struct OptionsHeader<'a> {
     pub options_extension: Option<bool>,
 }
 
-impl<'a> OptionsHeader<'a> {
-    pub fn parse(input: &'a [u8]) -> IResult<&[u8], Option<Self>> {
+impl OptionsHeader {
+    pub fn parse(input: &[u8]) -> IResult<&[u8], Option<Self>> {
         // FIX: return error
         if !is_options_header(input[0]) {
             panic!("");
@@ -326,8 +327,8 @@ mod tests {
                 assert_eq!(i.len(), 108);
 
                 if let Some(mob_id) = opt_h.mobile_id {
-                    assert_eq!(mob_id.len(), 5);
-                    assert_eq!(mob_id.to_string(), String::from("4634663235"));
+                    assert_eq!(mob_id.len(), 10);
+                    assert_eq!(mob_id.0, String::from("4634663235"));
                 }
 
                 if let Some(mob_id_tp) = opt_h.mobile_id_type {

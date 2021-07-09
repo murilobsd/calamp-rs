@@ -17,36 +17,39 @@ use std::fmt;
 use nom::bits::{bits, streaming};
 use nom::error::Error;
 use nom::IResult;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use crate::utils;
 
 #[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct FixStatus {
     /// Bit is set when the position update has a horizontal position accuracy estimate that is
     /// less that the Horizontal Position Accuracy Threshold defined in S-Register 142 (and the
     /// threshold is non-zero).
-    predicted: bool,
+    pub predicted: bool,
 
     /// This bit is set when WAAS DGPS is enabled (S-Register 139) and the position has been
     /// differentially corrected
-    diff_corrected: bool,
+    pub diff_corrected: bool,
 
     /// This bit is set when the current GPS fix is invalid but a previous fix’s value is
     /// available.
-    last_know: bool,
+    pub last_know: bool,
 
     /// This bit is set only after a power-up or reset before a valid fix is obtained.
-    invalid_fix: bool,
+    pub invalid_fix: bool,
 
     /// This bit is set when 3 or fewer satellites are seen/used in the GPS fix. (i.e. with 3
     /// satellites or less, an altitude value cannot be calculated)
-    twod_fix: bool,
+    pub twod_fix: bool,
 
     /// This bit is set when the message has been logged by the LMU.
-    historic: bool,
+    pub historic: bool,
 
     /// This bit is set only after a power-up or reset before a valid time-sync has been obtained.
-    invalid_time: bool,
+    pub invalid_time: bool,
 }
 
 impl FixStatus {
@@ -78,6 +81,7 @@ impl FixStatus {
 }
 
 #[derive(PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum NetworkTechnology {
     /// 2G
     CdmaGsm,
@@ -135,6 +139,7 @@ impl fmt::Debug for NetworkTechnology {
 }
 
 #[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct CommState {
     /// Available
     pub available: bool,
@@ -187,15 +192,16 @@ impl CommState {
 }
 
 #[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Inputs {
-    ignition: bool,
-    input_1: bool,
-    input_2: bool,
-    input_3: bool,
-    input_4: bool,
-    input_5: bool,
-    input_6: bool,
-    input_7: bool,
+    pub ignition: bool,
+    pub input_1: bool,
+    pub input_2: bool,
+    pub input_3: bool,
+    pub input_4: bool,
+    pub input_5: bool,
+    pub input_6: bool,
+    pub input_7: bool,
 }
 
 impl Inputs {
@@ -229,6 +235,7 @@ impl Inputs {
 }
 
 #[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct UnitStatus {
     /// LMU32: HTTP OTA Update Status (0=OK, 1=Error), LMU8: Unused
     pub ota_update: bool,
@@ -252,7 +259,7 @@ pub struct UnitStatus {
     pub reserved_3: bool,
 
     /// Unused
-    unused: bool,
+    pub unused: bool,
 }
 
 impl UnitStatus {
@@ -292,6 +299,7 @@ impl UnitStatus {
 /// The Server should respond to an Acknowledged Event Report Request with an
 /// Acknowledge Message.
 #[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct EventReport {
     /// The time tag of the message in seconds.
     pub update_time: u32,

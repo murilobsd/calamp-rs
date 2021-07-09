@@ -15,9 +15,12 @@
 use nom::error::ErrorKind;
 use nom::number::streaming::{be_u16, be_u8};
 use nom::IResult;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 #[derive(PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum MessageType {
     /// Null message
     Null,
@@ -149,6 +152,7 @@ impl fmt::Debug for MessageType {
 }
 
 #[derive(PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ServiceType {
     /// Unacknowledged Request
     Unacknowledged,
@@ -226,6 +230,7 @@ impl fmt::Debug for ServiceType {
 /// message normally. If the same, it will not process the message and will
 /// return a NAK response with the 'ACK' field set to 7.
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SequenceNumber(u16);
 
 impl fmt::Display for SequenceNumber {
@@ -251,6 +256,8 @@ impl SequenceNumber {
     }
 }
 
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct MessageHeader {
     pub service_type: ServiceType,
     pub message_type: MessageType,

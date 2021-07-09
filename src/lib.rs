@@ -13,6 +13,8 @@
 //
 
 //! Calamp LMDirect message parser.
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 pub mod message_header;
 pub mod messages;
@@ -23,14 +25,16 @@ use message_header::MessageHeader;
 use messages::event_report::EventReport;
 use options_header::OptionsHeader;
 
-pub struct Message<'a> {
-    pub options_header: Option<OptionsHeader<'a>>,
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct Message {
+    pub options_header: Option<OptionsHeader>,
     pub message_header: MessageHeader,
     pub msg: EventReport,
 }
 
-impl<'a> Message<'a> {
-    pub fn parse(input: &'a [u8]) -> Self {
+impl Message {
+    pub fn parse(input: &[u8]) -> Self {
         let (i, options_header) = OptionsHeader::parse(input).unwrap();
         let (i, message_header) = MessageHeader::parse(i).unwrap();
         let msg = EventReport::parse(i).unwrap();

@@ -11,6 +11,7 @@
 - __Fast__: use [nom](https://crates.io/crates/nom) parser combinator
 - __Security__: memory safe
 - __Messages__: support EventReport
+- __Serde__: serialize to json, xml
 
 ## Quickstart
 
@@ -18,7 +19,7 @@ To start with calamp-rs, add the following to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-calamp-rs= "0.1.4"
+calamp-rs= "0.2.4"
 ```
 
 Next, parse message:
