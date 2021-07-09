@@ -33,10 +33,10 @@ impl<'a> Message<'a> {
     pub fn parse(input: &'a [u8]) -> Self {
         let (i, options_header) = OptionsHeader::parse(input).unwrap();
         let (i, message_header) = MessageHeader::parse(i).unwrap();
-        let (_, msg) = EventReport::parse(i).unwrap();
+        let msg = EventReport::parse(i).unwrap();
 
         Message {
-            options_header: Some(options_header),
+            options_header,
             message_header,
             msg,
         }
