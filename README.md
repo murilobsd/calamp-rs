@@ -10,6 +10,7 @@
 
 - __Fast__: use [nom](https://crates.io/crates/nom) parser combinator
 - __Security__: memory safe
+- __Messages__: support EventReport
 
 ## Quickstart
 
@@ -50,6 +51,20 @@ the following:
 
 ```
 Message Type: MessageType::EventReport
+```
+
+## Examples
+
+To see some examples just run them via `cargo run --examples`.
+
+```
+cargo run --example srv_udp
+```
+
+Another terminal:
+
+```
+cargo run --example cli_udp
 ```
 
 ## Contributing
