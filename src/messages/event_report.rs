@@ -419,7 +419,7 @@ pub struct EventReport {
 
 impl EventReport {
     /// Parse event report
-    pub fn parse(input: &[u8]) -> IResult<&[u8], EventReport> {
+    pub fn parse(input: &[u8]) -> std::io::Result<EventReport> {
         let mut accum_list: Vec<u32> = vec![];
         let (i, update_time) = utils::pu32(input).unwrap();
         let (i, time_of_fix) = utils::pu32(i).unwrap();
@@ -447,31 +447,28 @@ impl EventReport {
             accum_list.push(v);
         }
 
-        Ok((
-            i,
-            EventReport {
-                update_time,
-                time_of_fix,
-                latitude,
-                longitude,
-                altitude,
-                speed,
-                heading,
-                satellites,
-                fix_status,
-                carrier,
-                rssi,
-                comm_state,
-                hdop,
-                inputs,
-                unit_status,
-                event_index,
-                event_code,
-                accums,
-                append,
-                accum_list,
-            },
-        ))
+        Ok(EventReport {
+            update_time,
+            time_of_fix,
+            latitude,
+            longitude,
+            altitude,
+            speed,
+            heading,
+            satellites,
+            fix_status,
+            carrier,
+            rssi,
+            comm_state,
+            hdop,
+            inputs,
+            unit_status,
+            event_index,
+            event_code,
+            accums,
+            append,
+            accum_list,
+        })
     }
 }
 
@@ -480,6 +477,7 @@ mod tests {
 
     use super::EventReport;
     use crate::message_header::MessageHeader;
+    use crate::messages::event_report::NetworkTechnology;
     use crate::options_header::OptionsHeader;
 
     #[test]
@@ -499,7 +497,7 @@ mod tests {
         ];
         let (i, _) = OptionsHeader::parse(&data).unwrap();
         let (i, _) = MessageHeader::parse(i).unwrap();
-        let (_, event_report) = EventReport::parse(i).unwrap();
+        let event_report = EventReport::parse(i).unwrap();
 
         assert_eq!(event_report.update_time, 1609644628);
         assert_eq!(event_report.time_of_fix, 1609644631);
@@ -515,7 +513,11 @@ mod tests {
         // assert_eq!(event_report.fix_status, 0);
         assert_eq!(event_report.carrier, 0);
         assert_eq!(event_report.rssi, -115);
-        // assert_eq!(event_report.comm_state, 0);
+        assert_eq!(event_report.comm_state.available, false);
+        assert_eq!(
+            event_report.comm_state.network_technology,
+            NetworkTechnology::CdmaGsm
+        );
         assert_eq!(event_report.hdop, 30);
         // assert_eq!(event_report.inputs, 0);
         // assert_eq!(event_report.unit_status, 0);
