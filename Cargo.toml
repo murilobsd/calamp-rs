@@ -24,7 +24,13 @@ description = "Parser for the Calamp LMDirect message protocol"
 
 [dependencies]
 nom = "6.2.0"
+chrono = { version = "0.4.19", optional = true }
+log = "0.4.14"
 
 [dev-dependencies]
 approx = "0.5.0"
 criterion = "0.3.4"
+
+[[bench]]
+name = "msg_benchmark"
+harness = false

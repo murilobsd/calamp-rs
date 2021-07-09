@@ -26,9 +26,19 @@ use options_header::OptionsHeader;
 pub struct Message<'a> {
     pub options_header: Option<OptionsHeader<'a>>,
     pub message_header: MessageHeader,
-    pub event_report: EventReport,
+    pub msg: EventReport,
 }
 
 impl<'a> Message<'a> {
-    pub fn parse(_input: &[u8]) {}
+    pub fn parse(input: &'a [u8]) -> Self {
+        let (i, options_header) = OptionsHeader::parse(input).unwrap();
+        let (i, message_header) = MessageHeader::parse(i).unwrap();
+        let (_, msg) = EventReport::parse(i).unwrap();
+
+        Message {
+            options_header: Some(options_header),
+            message_header,
+            msg,
+        }
+    }
 }
