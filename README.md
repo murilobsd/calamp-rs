@@ -18,7 +18,7 @@ To start with calamp-rs, add the following to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-calamp-rs= "0.0.3"
+calamp-rs= "0.1.4"
 ```
 
 Next, parse message:
