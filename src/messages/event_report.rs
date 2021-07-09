@@ -264,7 +264,7 @@ pub struct EventReport {
     // pub carrier_ms: u16,
     /// The received signal strength of the wireless modem in dBm. This value is
     /// signed in a 2’s complement format.
-    pub rssi: u16,
+    pub rssi: i16,
 
     /// The current state of the wireless modem bit mapped as follows
     ///
@@ -377,7 +377,7 @@ impl EventReport {
         let (i, satellites) = utils::pu8(i).unwrap();
         let (i, fix_status) = FixStatus::parse(i).unwrap();
         let (i, carrier) = utils::pu16(i).unwrap();
-        let (i, rssi) = utils::pu16(i).unwrap();
+        let (i, rssi) = utils::p16(i).unwrap();
         let (i, comm_state) = CommState::parse(i).unwrap();
         let (i, hdop) = utils::pu8(i).unwrap();
         let (i, inputs) = Inputs::parse(i).unwrap();
@@ -418,6 +418,7 @@ impl EventReport {
 
 #[cfg(test)]
 mod tests {
+
     use super::EventReport;
     use crate::message_header::MessageHeader;
     use crate::options_header::OptionsHeader;
@@ -442,5 +443,27 @@ mod tests {
         let (_, event_report) = EventReport::parse(i).unwrap();
 
         assert_eq!(event_report.update_time, 1609644628);
+        assert_eq!(event_report.time_of_fix, 1609644631);
+        approx::assert_relative_eq!(event_report.latitude, -23.6812936);
+        approx::assert_relative_eq!(
+            event_report.longitude,
+            -46.747897599999995
+        );
+        approx::assert_relative_eq!(event_report.altitude, 0.0079608);
+        approx::assert_relative_eq!(event_report.speed, 0.0000011);
+        assert_eq!(event_report.heading, 0);
+        assert_eq!(event_report.satellites, 6);
+        // assert_eq!(event_report.fix_status, 0);
+        assert_eq!(event_report.carrier, 0);
+        assert_eq!(event_report.rssi, -115);
+        // assert_eq!(event_report.comm_state, 0);
+        assert_eq!(event_report.hdop, 30);
+        // assert_eq!(event_report.inputs, 0);
+        // assert_eq!(event_report.unit_status, 0);
+        assert_eq!(event_report.event_index, 123);
+        assert_eq!(event_report.event_code, 33);
+        assert_eq!(event_report.accums, 16);
+        assert_eq!(event_report.append, 0);
+        // assert_eq!(event_report.accum_list, 0);
     }
 }

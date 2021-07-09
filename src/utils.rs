@@ -13,18 +13,12 @@
 //
 
 use nom::error::ErrorKind;
-use nom::number::streaming::{be_f32, be_i16, be_u16, be_u32, be_u8};
+use nom::number::streaming::{be_i16, be_i32, be_u16, be_u32, be_u8};
 use nom::IResult;
 
 #[allow(dead_code)]
 pub(crate) fn pu32(input: &[u8]) -> IResult<&[u8], u32> {
     let (i, a): (&[u8], u32) = be_u32::<_, (_, ErrorKind)>(input).unwrap();
-    Ok((i, a))
-}
-
-#[allow(dead_code)]
-pub(crate) fn pf32(input: &[u8]) -> IResult<&[u8], f32> {
-    let (i, a): (&[u8], f32) = be_f32::<_, (_, ErrorKind)>(input).unwrap();
     Ok((i, a))
 }
 
@@ -44,4 +38,11 @@ pub(crate) fn pu8(input: &[u8]) -> IResult<&[u8], u8> {
 pub(crate) fn p16(input: &[u8]) -> IResult<&[u8], i16> {
     let (i, a): (&[u8], i16) = be_i16::<_, (_, ErrorKind)>(input).unwrap();
     Ok((i, a))
+}
+
+#[allow(dead_code)]
+pub(crate) fn pf32(input: &[u8]) -> IResult<&[u8], f32> {
+    let (i, a): (&[u8], i32) = be_i32::<_, (_, ErrorKind)>(input).unwrap();
+    let b = (a as f32) * 1e-7;
+    Ok((i, b))
 }
