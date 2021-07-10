@@ -2,13 +2,13 @@
  - [x] options status
  - [x] mobile id
  - [x] mobile id type
-- [ ] is necessary call multiple be_u8
-- [ ] fix latitude and longitude types
-- [ ] parse acumm list
-- [ ] is int16? signed singal rssi
-- [ ] bit map enum
+- [x] is necessary call multiple be_u8
+- [x] fix latitude and longitude types
+- [x] parse acumm list
+- [x] is int16? signed singal rssi
+- [x] bit map enum
 - example
-	- [ ] udp
-	- [ ] wasm
-- [ ] bench test
+	- [x] udp
+	- [x] wasm
+- [x] bench test
 - [ ] error

@@ -20,6 +20,9 @@ use nom::IResult;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "chrono")]
+use chrono::{DateTime, TimeZone, Utc};
+
 use crate::utils;
 
 #[derive(Debug, PartialEq)]
@@ -302,9 +305,15 @@ impl UnitStatus {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct EventReport {
     /// The time tag of the message in seconds.
+    #[cfg(feature = "chrono")]
+    pub update_time: DateTime<Utc>,
+    #[cfg(not(feature = "chrono"))]
     pub update_time: u32,
 
     /// The last known time of fix from the GPS satellites.
+    #[cfg(feature = "chrono")]
+    pub time_of_fix: DateTime<Utc>,
+    #[cfg(not(feature = "chrono"))]
     pub time_of_fix: u32,
 
     /// The latitude reading of the GPS receiver, measured in degrees with a
@@ -444,6 +453,9 @@ impl EventReport {
     /// Parse event report
     pub fn parse(input: &[u8]) -> std::io::Result<EventReport> {
         let mut accum_list: Vec<u32> = vec![];
+        #[cfg(feature = "chrono")]
+        let (i, update_time) = utils::pdt(input).unwrap();
+        #[cfg(not(feature = "chrono"))]
         let (i, update_time) = utils::pu32(input).unwrap();
         let (i, time_of_fix) = utils::pu32(i).unwrap();
         let (i, latitude) = utils::pf32(i).unwrap();
